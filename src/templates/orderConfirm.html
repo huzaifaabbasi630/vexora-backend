@@ -1,0 +1,420 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light" />
+  <meta name="supported-color-schemes" content="light" />
+  <title>Confirm Your Order | VEXORA</title>
+</head>
+
+<body style="margin:0;padding:0;background-color:#F3EFE9;">
+
+  <!-- Preheader -->
+  <div style="display:none;font-size:1px;color:#F3EFE9;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">
+    Your VEXORA order is waiting for confirmation. Confirm it securely today.
+  </div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+    border="0" style="width:100%;background-color:#F3EFE9;">
+    <tr>
+      <td align="center" style="padding:28px 12px;">
+
+        <!-- Main Container -->
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0"
+          border="0"
+          style="width:100%;max-width:600px;background-color:#FFFFFF;border-radius:12px;overflow:hidden;">
+
+          <!-- HEADER -->
+          <tr>
+            <td align="center"
+              style="background-color:#1A1512;padding:34px 20px 28px;">
+
+              <div style="font-family:Georgia,'Times New Roman',serif;font-size:30px;letter-spacing:8px;font-weight:bold;color:#F3EFE9;">
+                VEXORA
+              </div>
+
+              <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;letter-spacing:3px;color:#C9BFB4;padding-top:10px;">
+                MODERN STYLE. TIMELESS CONFIDENCE.
+              </div>
+
+              <div style="width:44px;height:2px;background-color:#F3EFE9;margin:20px auto 0;font-size:0;line-height:0;">
+                &nbsp;
+              </div>
+            </td>
+          </tr>
+
+          <!-- INTRO -->
+          <tr>
+            <td style="padding:34px 30px 12px;font-family:Arial,Helvetica,sans-serif;color:#1A1512;">
+
+              <p style="margin:0 0 12px;font-size:11px;letter-spacing:2px;font-weight:bold;color:#796B5F;">
+                ORDER VERIFICATION
+              </p>
+
+              <h1 style="margin:0 0 16px;font-family:Georgia,'Times New Roman',serif;font-size:29px;line-height:1.3;font-weight:normal;color:#1A1512;">
+                Hello {{name}},
+              </h1>
+
+              <p style="margin:0;font-size:15px;line-height:1.8;color:#51483F;">
+                Thank you for choosing VEXORA. We're excited to bring your
+                selection to you. Please review your order and confirm it
+                using the secure button below.
+              </p>
+
+            </td>
+          </tr>
+
+          <!-- ORDER DETAILS -->
+          <tr>
+            <td style="padding:20px 30px 10px;">
+
+              <table role="presentation" width="100%" cellpadding="0"
+                cellspacing="0" border="0"
+                style="width:100%;background-color:#F3EFE9;border-radius:8px;">
+
+                <tr>
+                  <td style="padding:20px;">
+
+                    <p style="margin:0 0 16px;font-family:Arial,Helvetica,sans-serif;font-size:11px;letter-spacing:2px;font-weight:bold;color:#796B5F;">
+                      YOUR ORDER
+                    </p>
+
+                    <table role="presentation" width="100%" cellpadding="0"
+                      cellspacing="0" border="0">
+
+                      <tr>
+                        <td style="padding:7px 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#796B5F;">
+                          Order Number
+                        </td>
+                        <td align="right" style="padding:7px 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:bold;color:#1A1512;">
+                          {{orderId}}
+                        </td>
+                      </tr>
+
+                      <tr>
+                        <td style="padding:7px 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#796B5F;">
+                          Order Date
+                        </td>
+                        <td align="right" style="padding:7px 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1A1512;">
+                          {{orderDate}}
+                        </td>
+                      </tr>
+
+                      <tr>
+                        <td style="padding:7px 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#796B5F;">
+                          Total Items
+                        </td>
+                        <td align="right" style="padding:7px 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1A1512;">
+                          {{totalItems}}
+                        </td>
+                      </tr>
+
+                      <tr>
+                        <td colspan="2" style="padding-top:12px;border-top:1px solid #D9CEC2;font-size:0;line-height:0;">
+                          &nbsp;
+                        </td>
+                      </tr>
+
+                      <tr>
+                        <td style="padding-top:8px;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;color:#1A1512;">
+                          Order Total
+                        </td>
+                        <td align="right" style="padding-top:8px;font-family:Georgia,'Times New Roman',serif;font-size:22px;font-weight:bold;color:#1A1512;">
+                          {{currency}} {{orderTotal}}
+                        </td>
+                      </tr>
+
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- CONFIRM BUTTON -->
+          <tr>
+            <td align="center" style="padding:24px 30px 8px;">
+
+              <table role="presentation" cellpadding="0" cellspacing="0"
+                border="0">
+                <tr>
+                  <td align="center" bgcolor="#1A1512"
+                    style="border-radius:5px;background-color:#1A1512;">
+
+                    <a href="{{confirmLink}}" target="_blank"
+                      style="display:inline-block;padding:16px 36px;font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:bold;letter-spacing:1.5px;text-decoration:none;color:#F3EFE9;">
+                      CONFIRM MY ORDER &rarr;
+                    </a>
+
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:16px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.7;color:#796B5F;text-align:center;">
+                For your security, this confirmation link expires at
+                {{tokenExpiry}}.
+              </p>
+
+            </td>
+          </tr>
+
+          <!-- PRODUCT SUMMARY -->
+          <tr>
+            <td style="padding:30px 30px 10px;">
+
+              <h2 style="margin:0 0 18px;font-family:Georgia,'Times New Roman',serif;font-size:22px;font-weight:normal;color:#1A1512;">
+                Your Selection
+              </h2>
+
+              <!--
+                Repeat this product row for every item in the order.
+                Replace the placeholders with actual product data.
+              -->
+              {{productRows}}
+
+              <p style="margin:12px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.6;color:#796B5F;">
+                Product images and item details reflect your selected order.
+              </p>
+
+            </td>
+          </tr>
+
+          <!-- SHIPPING & PAYMENT SUMMARY -->
+          <tr>
+            <td style="padding:22px 30px 10px;">
+
+              <table role="presentation" width="100%" cellpadding="0"
+                cellspacing="0" border="0"
+                style="width:100%;border:1px solid #E5DCD2;border-radius:8px;">
+
+                <tr>
+                  <td style="padding:20px;">
+
+                    <h2 style="margin:0 0 18px;font-family:Georgia,'Times New Roman',serif;font-size:21px;font-weight:normal;color:#1A1512;">
+                      Delivery &amp; Payment
+                    </h2>
+
+                    <p style="margin:0 0 7px;font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:bold;letter-spacing:1.5px;color:#796B5F;">
+                      SHIPPING ADDRESS
+                    </p>
+
+                    <p style="margin:0 0 18px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.8;color:#1A1512;">
+                      {{name}}<br />
+                      {{shippingAddress}}<br />
+                      {{city}}, {{postalCode}}<br />
+                      {{phone}}
+                    </p>
+
+                    <div style="height:1px;background-color:#E5DCD2;font-size:0;line-height:0;">
+                      &nbsp;
+                    </div>
+
+                    <table role="presentation" width="100%" cellpadding="0"
+                      cellspacing="0" border="0" style="margin-top:12px;">
+
+                      <tr>
+                        <td style="padding:6px 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#796B5F;">
+                          Subtotal
+                        </td>
+                        <td align="right" style="padding:6px 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1A1512;">
+                          {{currency}} {{subtotal}}
+                        </td>
+                      </tr>
+
+                      <tr>
+                        <td style="padding:6px 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#796B5F;">
+                          Shipping
+                        </td>
+                        <td align="right" style="padding:6px 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1A1512;">
+                          {{currency}} {{shippingCharges}}
+                        </td>
+                      </tr>
+
+                      <tr>
+                        <td style="padding:6px 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#796B5F;">
+                          Discount
+                        </td>
+                        <td align="right" style="padding:6px 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1A1512;">
+                          - {{currency}} {{discount}}
+                        </td>
+                      </tr>
+
+                      <tr>
+                        <td style="padding-top:12px;border-top:1px solid #E5DCD2;font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:bold;color:#1A1512;">
+                          Total Payable
+                        </td>
+                        <td align="right" style="padding-top:12px;border-top:1px solid #E5DCD2;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:#1A1512;">
+                          {{currency}} {{orderTotal}}
+                        </td>
+                      </tr>
+
+                    </table>
+
+                    <p style="margin:18px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.7;color:#51483F;">
+                      <strong>Payment Method:</strong> {{paymentMethod}}<br />
+                      <strong>Payment Status:</strong> {{paymentStatus}}
+                    </p>
+
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- WHAT HAPPENS NEXT -->
+          <tr>
+            <td style="padding:30px 30px 10px;">
+
+              <h2 style="margin:0 0 22px;font-family:Georgia,'Times New Roman',serif;font-size:22px;font-weight:normal;color:#1A1512;">
+                What Happens Next?
+              </h2>
+
+              <table role="presentation" width="100%" cellpadding="0"
+                cellspacing="0" border="0">
+
+                <tr>
+                  <td width="38" valign="top"
+                    style="padding:0 12px 20px 0;">
+                    <div style="width:30px;height:30px;line-height:30px;text-align:center;background-color:#1A1512;border-radius:50%;font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:bold;color:#F3EFE9;">
+                      1
+                    </div>
+                  </td>
+                  <td valign="top" style="padding-bottom:20px;">
+                    <p style="margin:0 0 5px;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;color:#1A1512;">
+                      Confirm Your Order
+                    </p>
+                    <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.7;color:#796B5F;">
+                      Verify your order using the secure confirmation link.
+                    </p>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td width="38" valign="top"
+                    style="padding:0 12px 20px 0;">
+                    <div style="width:30px;height:30px;line-height:30px;text-align:center;background-color:#1A1512;border-radius:50%;font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:bold;color:#F3EFE9;">
+                      2
+                    </div>
+                  </td>
+                  <td valign="top" style="padding-bottom:20px;">
+                    <p style="margin:0 0 5px;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;color:#1A1512;">
+                      We Prepare Your Order
+                    </p>
+                    <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.7;color:#796B5F;">
+                      Once confirmed, your order can move to processing.
+                    </p>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td width="38" valign="top" style="padding:0 12px 0 0;">
+                    <div style="width:30px;height:30px;line-height:30px;text-align:center;background-color:#1A1512;border-radius:50%;font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:bold;color:#F3EFE9;">
+                      3
+                    </div>
+                  </td>
+                  <td valign="top">
+                    <p style="margin:0 0 5px;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;color:#1A1512;">
+                      Delivery to Your Doorstep
+                    </p>
+                    <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.7;color:#796B5F;">
+                      When your order ships, we'll send tracking details.
+                    </p>
+                  </td>
+                </tr>
+
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- TRACKING CTA -->
+          <!-- Show only when a valid tracking URL exists. -->
+          <tr>
+            <td align="center" style="padding:28px 30px 12px;">
+
+              <p style="margin:0 0 14px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.7;color:#51483F;">
+                Already confirmed your order?
+              </p>
+
+              <a href="{{trackingLink}}" target="_blank"
+                style="display:inline-block;border:1px solid #1A1512;border-radius:5px;padding:13px 24px;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:bold;letter-spacing:1px;text-decoration:none;color:#1A1512;">
+                TRACK MY ORDER
+              </a>
+
+            </td>
+          </tr>
+
+          <!-- FALLBACK CONFIRMATION LINK -->
+          <tr>
+            <td style="padding:22px 30px 10px;font-family:Arial,Helvetica,sans-serif;">
+
+              <p style="margin:0 0 8px;font-size:12px;line-height:1.7;color:#796B5F;">
+                If the confirmation button doesn't work, copy and paste
+                this link into your browser:
+              </p>
+
+              <p style="margin:0;font-size:12px;line-height:1.7;word-break:break-all;">
+                <a href="{{confirmLink}}" target="_blank"
+                  style="color:#1A1512;text-decoration:underline;">
+                  {{confirmLink}}
+                </a>
+              </p>
+
+              <p style="margin:16px 0 0;font-size:12px;line-height:1.7;color:#796B5F;">
+                If you didn't place this order, you can safely ignore this
+                email. Your order should not be confirmed through this link
+                unless you initiated the request.
+              </p>
+
+            </td>
+          </tr>
+
+          <!-- FOOTER -->
+          <tr>
+            <td style="padding:28px 30px 30px;">
+
+              <div style="height:1px;background-color:#E5DCD2;font-size:0;line-height:0;">
+                &nbsp;
+              </div>
+
+              <p style="margin:24px 0 8px;font-family:Georgia,'Times New Roman',serif;font-size:19px;color:#1A1512;">
+                The VEXORA Team
+              </p>
+
+              <p style="margin:0 0 18px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.8;color:#796B5F;">
+                Thoughtfully selected. Made for your style.
+              </p>
+
+              <p style="margin:0 0 16px;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:2;text-align:center;">
+                <a href="{{storeUrl}}" style="color:#1A1512;text-decoration:underline;">Visit VEXORA</a>
+                &nbsp; | &nbsp;
+                <a href="{{supportUrl}}" style="color:#1A1512;text-decoration:underline;">Contact Us</a>
+                &nbsp; | &nbsp;
+                <a href="{{returnPolicyUrl}}" style="color:#1A1512;text-decoration:underline;">Returns &amp; Exchanges</a>
+                &nbsp; | &nbsp;
+                <a href="{{privacyPolicyUrl}}" style="color:#1A1512;text-decoration:underline;">Privacy Policy</a>
+              </p>
+
+              <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:1.8;text-align:center;color:#998B7E;">
+                &copy; {{currentYear}} VEXORA. All rights reserved.
+                <br />
+                This is a transactional email regarding your order.
+              </p>
+
+            </td>
+          </tr>
+
+        </table>
+        <!-- End Main Container -->
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>
+```
