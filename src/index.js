@@ -2,8 +2,8 @@
 require('dotenv').config({ path: require('path').resolve(__dirname, '..', '.env') });
 const express = require('express');
 const cors = require('cors');
-const serverless = require('serverless-http');
 const connectDB = require('./config/db');
+const { isAllowedOrigin } = require('./config/allowedOrigins');
 
 // Routes
 const authRoutes = require('./routes/auth');
@@ -18,25 +18,23 @@ const { getPublishedCmsPage, ensureOwnerExists } = require('./controllers/adminC
 const app = express();
 
 // Database connection for Serverless / Local startup
-connectDB().then(() => {
-  ensureOwnerExists().catch(err => console.error('Error ensuring owner exists:', err));
-});
+connectDB()
+  .then(() => ensureOwnerExists().catch(err => console.error('Error ensuring owner exists:', err)))
+  .catch(err => console.error('MongoDB connection failed:', err.message));
 
-const allowedOrigins = new Set([
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
-  'http://localhost:3000',
-  'http://127.0.0.1:3000',
-  process.env.FRONTEND_URL,
-].filter(Boolean));
-
-app.use(cors({
+const corsOptions = {
   origin(origin, callback) {
-    if (!origin || allowedOrigins.has(origin)) return callback(null, true);
-    return callback(new Error('Origin is not allowed by CORS.'));
+    // Disallowed origins get no CORS headers (browser blocks them) instead of a 500.
+    callback(null, !origin || isAllowedOrigin(origin));
   },
   credentials: true,
-}));
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  optionsSuccessStatus: 204,
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -68,10 +66,10 @@ app.use((error, _req, res, _next) => {
 
 const PORT = process.env.PORT || 5000;
 
-// Local development ke liye app.listen (Vercel par yeh execute nahi hoga)
-if (process.env.NODE_ENV !== 'production') {
+// Local development ke liye app.listen (Vercel imports this file, so yeh execute nahi hoga)
+if (require.main === module) {
   app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
 }
 
-// Export for Vercel Serverless Functions
-module.exports = serverless(app);
+// @vercel/node calls the export as (req, res), so export the Express app directly.
+module.exports = app;

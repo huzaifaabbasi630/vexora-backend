@@ -298,11 +298,8 @@ const verifyOtp = async (req, res) => {
 
   const token = createAdminSessionToken(owner);
   res.cookie('vexora_admin_session', token, {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    ...adminCookieOptions(),
     maxAge: ADMIN_SESSION_TTL_MS,
-    path: '/',
   });
 
   return res.status(200).json({
@@ -315,8 +312,19 @@ const verifyOtp = async (req, res) => {
   });
 };
 
+// Frontend and backend are on different *.vercel.app sites, so production needs SameSite=None; Secure.
+const adminCookieOptions = () => {
+  const isProduction = process.env.NODE_ENV === 'production' || Boolean(process.env.VERCEL);
+  return {
+    httpOnly: true,
+    sameSite: isProduction ? 'none' : 'lax',
+    secure: isProduction,
+    path: '/',
+  };
+};
+
 const logoutOwner = async (req, res) => {
-  res.clearCookie('vexora_admin_session', { path: '/' });
+  res.clearCookie('vexora_admin_session', adminCookieOptions());
   return res.status(200).json({ message: 'Logged out successfully.' });
 };
 
