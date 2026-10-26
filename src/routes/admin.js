@@ -1,5 +1,6 @@
 const express = require('express');
 const { requireAuth, requireOwner } = require('../middleware/adminAuth');
+const { allowedOrigins, normalizeOrigin } = require('../config/allowedOrigins');
 const {
   loginOwner,
   resendOtp,
@@ -34,17 +35,10 @@ const {
 
 const router = express.Router();
 const asyncHandler = (handler) => (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next);
-const allowedOrigins = new Set([
-  process.env.FRONTEND_URL,
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
-  'http://localhost:3000',
-  'http://127.0.0.1:3000',
-].filter(Boolean));
 
 router.use((req, res, next) => {
   const origin = req.get('origin');
-  if (origin && !allowedOrigins.has(origin)) {
+  if (origin && !allowedOrigins.has(normalizeOrigin(origin))) {
     return res.status(403).json({ message: 'Request origin is not allowed.' });
   }
   if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)

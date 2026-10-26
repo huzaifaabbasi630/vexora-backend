@@ -2,8 +2,8 @@
 require('dotenv').config({ path: require('path').resolve(__dirname, '..', '.env') });
 const express = require('express');
 const cors = require('cors');
-const serverless = require('serverless-http');
 const connectDB = require('./config/db');
+const { allowedOrigins, normalizeOrigin } = require('./config/allowedOrigins');
 
 // Routes
 const authRoutes = require('./routes/auth');
@@ -17,23 +17,16 @@ const { getPublishedCmsPage, ensureOwnerExists } = require('./controllers/adminC
 
 const app = express();
 
-// Database connection for Serverless / Local startup
-connectDB().then(() => {
-  ensureOwnerExists().catch(err => console.error('Error ensuring owner exists:', err));
-});
-
-const allowedOrigins = new Set([
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
-  'http://localhost:3000',
-  'http://127.0.0.1:3000',
-  process.env.FRONTEND_URL,
-].filter(Boolean));
+connectDB()
+  .then(() => ensureOwnerExists())
+  .catch((error) => console.error('Database initialization failed:', error));
 
 app.use(cors({
   origin(origin, callback) {
-    if (!origin || allowedOrigins.has(origin)) return callback(null, true);
-    return callback(new Error('Origin is not allowed by CORS.'));
+    if (!origin || allowedOrigins.has(normalizeOrigin(origin))) return callback(null, true);
+    const error = new Error('Origin is not allowed by CORS.');
+    error.status = 403;
+    return callback(error);
   },
   credentials: true,
 }));
@@ -60,10 +53,21 @@ app.use('/webhook', webhookRoutes);
 // Simple health check
 app.get('/', (_req, res) => res.send('E‑commerce backend is up'));
 
-app.use((error, _req, res, _next) => {
+app.use((error, _req, res, next) => {
   console.error(`Request failed (${error.code || error.name || 'SERVER_ERROR'}).`);
-  if (res.headersSent) return;
-  return res.status(500).json({ message: 'The request could not be completed.' });
+  if (res.headersSent) return next(error);
+  if (error.type === 'entity.parse.failed') {
+    return res.status(400).json({ message: 'Request body must contain valid JSON.' });
+  }
+  if (error.type === 'entity.too.large') {
+    return res.status(413).json({ message: 'Request body is too large.' });
+  }
+  const statusCode = Number(error.statusCode || error.status);
+  const status = statusCode >= 400 && statusCode < 600 ? statusCode : 500;
+  const message = status === 403 && error.message
+    ? error.message
+    : 'The request could not be completed.';
+  return res.status(status).json({ message });
 });
 
 const PORT = process.env.PORT || 5000;
@@ -73,5 +77,4 @@ if (process.env.NODE_ENV !== 'production') {
   app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
 }
 
-// Export for Vercel Serverless Functions
-module.exports = serverless(app);
+module.exports = app;

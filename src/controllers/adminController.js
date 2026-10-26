@@ -297,10 +297,11 @@ const verifyOtp = async (req, res) => {
   await logAuditAction(owner, 'owner_login_verified', { targetType: 'owner_auth', payload: { challengeId } }, req);
 
   const token = createAdminSessionToken(owner);
+  const isProduction = process.env.NODE_ENV === 'production';
   res.cookie('vexora_admin_session', token, {
     httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    sameSite: isProduction ? 'none' : 'lax',
+    secure: isProduction,
     maxAge: ADMIN_SESSION_TTL_MS,
     path: '/',
   });
@@ -316,7 +317,13 @@ const verifyOtp = async (req, res) => {
 };
 
 const logoutOwner = async (req, res) => {
-  res.clearCookie('vexora_admin_session', { path: '/' });
+  const isProduction = process.env.NODE_ENV === 'production';
+  res.clearCookie('vexora_admin_session', {
+    httpOnly: true,
+    sameSite: isProduction ? 'none' : 'lax',
+    secure: isProduction,
+    path: '/',
+  });
   return res.status(200).json({ message: 'Logged out successfully.' });
 };
 
