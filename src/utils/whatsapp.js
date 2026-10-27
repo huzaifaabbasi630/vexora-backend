@@ -19,16 +19,16 @@ function getWhatsAppConfigStatus() {
   return {
     accessTokenConfigured: Boolean(process.env.WHATSAPP_TOKEN || process.env.META_ACCESS_TOKEN),
     accessTokenSource: process.env.WHATSAPP_TOKEN ? 'WHATSAPP_TOKEN' : process.env.META_ACCESS_TOKEN ? 'META_ACCESS_TOKEN' : null,
-    phoneNumberIdConfigured: Boolean(process.env.PHONE_NUMBER_ID || process.env.META_PHONE_NUMBER_ID),
-    phoneNumberIdSource: process.env.PHONE_NUMBER_ID ? 'PHONE_NUMBER_ID' : process.env.META_PHONE_NUMBER_ID ? 'META_PHONE_NUMBER_ID' : null,
+    phoneNumberIdConfigured: Boolean(process.env.META_PHONE_NUMBER_ID),
+    phoneNumberIdSource: process.env.META_PHONE_NUMBER_ID ? 'META_PHONE_NUMBER_ID' : null,
   };
 }
 
 async function sendWhatsAppMessage(payload, apiVersion = 'v25.0') {
   try {
-    const phoneNumberId = process.env.PHONE_NUMBER_ID || process.env.META_PHONE_NUMBER_ID;
+    const phoneNumberId = process.env.META_PHONE_NUMBER_ID;
     if (!phoneNumberId) {
-      throw new Error('WhatsApp phone number ID is not configured. Set PHONE_NUMBER_ID or META_PHONE_NUMBER_ID.');
+      throw new Error('WhatsApp phone number ID is not configured. Set META_PHONE_NUMBER_ID.');
     }
 
     const recipient = formatPhoneNumber(payload.to);
