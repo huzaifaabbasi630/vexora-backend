@@ -2,15 +2,22 @@ const nodemailer = require('nodemailer');
 const fs = require('fs');
 const path = require('path');
 
-const emailPort = Number.parseInt(process.env.EMAIL_PORT, 10) || 465;
+const configuredEmailPort = Number.parseInt(process.env.EMAIL_PORT, 10);
+const emailPort = [465, 587].includes(configuredEmailPort) ? configuredEmailPort : 587;
 
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST || 'smtp.gmail.com',
   port: emailPort,
   secure: emailPort === 465,
-  connectionTimeout: 10000,
-  greetingTimeout: 10000,
-  socketTimeout: 15000,
+  pool: true,
+  maxConnections: 1,
+  rateDelta: 20000,
+  connectionTimeout: 30000,
+  greetingTimeout: 30000,
+  socketTimeout: 60000,
+  tls: {
+    minVersion: 'TLSv1.2',
+  },
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
