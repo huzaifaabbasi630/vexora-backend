@@ -1,10 +1,10 @@
 const mongoose = require('mongoose');
 
 const connectDB = async () => {
-  const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI;
+  const mongoUri = process.env.MONGODB_URI || process.env.MONGODB_URI;
 
   if (!mongoUri) {
-    throw new Error('Missing MongoDB URI. Set MONGO_URI in backend/.env.');
+    throw new Error('Missing MongoDB URI. Set MONGODB_URI in backend/.env.');
   }
 
   if (mongoUri.startsWith('"') || mongoUri.startsWith("'")) {
@@ -12,7 +12,7 @@ const connectDB = async () => {
   }
 
   if (!/^mongodb(?:\+srv)?:\/\//i.test(mongoUri)) {
-    throw new Error('Invalid MONGO_URI (or MONGODB_URI). It must start with mongodb:// or mongodb+srv://.');
+    throw new Error('Invalid MONGODB_URI. It must start with mongodb:// or mongodb+srv://.');
   }
 
   await mongoose.connect(mongoUri);
