@@ -247,7 +247,6 @@ async function handleOrderConfirmation(orderId, fromNumber) {
       // 2. Send confirmation email to customer
       (async () => {
         try {
-          console.log('📤 Starting WhatsApp confirmation reply to the customer sender.');
           await sendEmailConfirmation(order);
           console.log('📧 Confirmation email sent to:', order.customerInfo.email);
         } catch (err) {
@@ -258,6 +257,11 @@ async function handleOrderConfirmation(orderId, fromNumber) {
       // 3. Send WhatsApp receipt to customer
       (async () => {
         try {
+          console.log('📤 Starting WhatsApp confirmation reply to customer:', {
+            orderId,
+            recipientLast4: typeof fromNumber === 'string' ? fromNumber.slice(-4) : null,
+          });
+
           // Build detailed order receipt message
           const orderShortId = String(order._id).slice(-6);
           const customerName = order.customerInfo?.name || 'Customer';
