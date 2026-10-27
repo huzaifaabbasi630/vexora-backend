@@ -100,6 +100,7 @@ const ensureOwnerExists = async () => {
 
 const loginOwner = async (req, res) => {
   try {
+    console.log('🔐 Admin login request received.');
     const { email = '', password = '' } = req.body || {};
     const normalizedEmail = String(email).trim().toLowerCase();
     const rateLimit = consumeRateLimit(req, 'login', 5, 15 * 60 * 1000);
@@ -123,6 +124,7 @@ const loginOwner = async (req, res) => {
       return res.status(401).json({ message: 'Invalid email or password.' });
     }
 
+    console.log('🔎 Admin login credentials accepted; creating OTP challenge.');
     await invalidatePendingChallenges(owner.email);
 
     const otp = crypto.randomInt(100000, 1000000).toString().padStart(6, '0');
@@ -141,7 +143,7 @@ const loginOwner = async (req, res) => {
     });
 
     try {
-      await sendEmail(
+      const emailResult = await sendEmail(
         owner.email,
         'VEXORA Owner Admin Login Code',
         'ownerOtp',
@@ -151,6 +153,12 @@ const loginOwner = async (req, res) => {
           expiresIn: '5 minutes',
         }
       );
+      const emailAccepted = Array.isArray(emailResult?.accepted)
+        && emailResult.accepted.some((recipient) => String(recipient).toLowerCase() === owner.email.toLowerCase());
+      if (!emailAccepted) {
+        throw new Error('SMTP did not accept the admin OTP recipient.');
+      }
+      console.log('✅ Admin OTP email accepted by SMTP.');
     } catch (err) {
       await AdminChallenge.updateOne(
         { challengeId },
@@ -161,6 +169,7 @@ const loginOwner = async (req, res) => {
     }
 
     await logAuditAction(owner, 'owner_login_requested', { targetType: 'owner_auth', payload: { challengeId, requestIp: getClientIp(req) } }, req);
+    console.log('✅ Admin login OTP challenge created successfully.');
 
     return res.status(200).json({
       message: 'Check your email for the verification code.',
