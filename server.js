@@ -6,6 +6,8 @@ const cors = require('cors')
 const express = require('express')
 const connectDB = require('./src/config/db')
 const productRoutes = require('./src/routes/products')
+const webhookRoutes = require('./src/routes/webhook')
+const { getWhatsAppConfigStatus } = require('./src/utils/whatsapp')
 const { getPublishedCmsPage } = require('./src/controllers/adminController')
 
 const app = express()
@@ -20,6 +22,8 @@ const allowedOrigins = [
   'http://127.0.0.1:3000',
 ]
 
+console.log('WhatsApp configuration status:', getWhatsAppConfigStatus())
+
 app.use(cors({ origin: allowedOrigins }));
 app.use(express.json({ limit: '32kb' }));
 const orderRoutes = require('./src/routes/order');
@@ -30,6 +34,12 @@ app.get('/api/content/:slug', (req, res, next) => {
 });
 
 connectDB().catch((error) => console.error('Database initialization failed:', error));
+
+app.use('/webhook', (req, _res, next) => {
+  console.log('📩 WhatsApp webhook HTTP request received:', req.method, req.path);
+  next();
+});
+app.use('/webhook', webhookRoutes);
 
 function formatOrderMessage({ customerInfo, cartItems, total }) {
   const itemLines = cartItems.map(
