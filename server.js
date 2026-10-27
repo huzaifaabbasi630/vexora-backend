@@ -4,10 +4,14 @@ require('dotenv').config({ path: path.join(__dirname, '.env') })
 const axios = require('axios')
 const cors = require('cors')
 const express = require('express')
+const connectDB = require('./src/config/db')
+const productRoutes = require('./src/routes/products')
+const { getPublishedCmsPage } = require('./src/controllers/adminController')
 
 const app = express()
 const port = Number(process.env.PORT) || 5000
 const allowedOrigins = [
+  'https://vexora-frontend.vercel.app',
   'http://localhost:5173',
   'http://localhost:4173',
   'http://localhost:3000',
@@ -20,6 +24,12 @@ app.use(cors({ origin: allowedOrigins }));
 app.use(express.json({ limit: '32kb' }));
 const orderRoutes = require('./src/routes/order');
 app.use('/api', orderRoutes);
+app.use('/api/products', productRoutes);
+app.get('/api/content/:slug', (req, res, next) => {
+  Promise.resolve(getPublishedCmsPage(req, res)).catch(next);
+});
+
+connectDB().catch((error) => console.error('Database initialization failed:', error));
 
 function formatOrderMessage({ customerInfo, cartItems, total }) {
   const itemLines = cartItems.map(

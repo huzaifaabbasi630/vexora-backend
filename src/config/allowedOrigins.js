@@ -10,7 +10,8 @@ const normalizeOrigin = (value) => {
   }
 }
 
-const localOrigins = [
+const defaultOrigins = [
+  'https://vexora-frontend.vercel.app',
   'http://localhost:5173',
   'http://localhost:4173',
   'http://localhost:3000',
@@ -24,6 +25,6 @@ const configuredOrigins = (process.env.FRONTEND_URL || '')
   .map(normalizeOrigin)
   .filter(Boolean)
 
-const allowedOrigins = new Set([...localOrigins, ...configuredOrigins])
+const allowedOrigins = new Set([...defaultOrigins, ...configuredOrigins])
 
 module.exports = { allowedOrigins, normalizeOrigin }
