@@ -7,6 +7,7 @@ const { sendOrderStatusEmail } = require('../utils/orderStatusEmail');
 const {
   formatPhoneNumber,
   sendCustomerConfirmationMessage,
+  sendCustomerOrderConfirmedMessage,
   sendOrderInteractiveMessage,
   sendOwnerTemplateMessage,
 } = require('../utils/whatsapp');
@@ -280,6 +281,18 @@ exports.confirmOrder = async (req, res) => {
     const confirmedOrder = claimedOrder;
 
     console.log('✅ Order confirmed:', confirmedOrder._id);
+
+    try {
+      await sendCustomerOrderConfirmedMessage(
+        confirmedOrder.customerInfo.phone,
+        confirmedOrder._id
+      );
+      console.log('📲 WhatsApp order confirmation sent to customer');
+    } catch (waErr) {
+      console.error(
+        'Customer WhatsApp confirmation failed; order remains confirmed.'
+      );
+    }
 
     // ── Send WhatsApp interactive message to store owner ──────────────────────
     const { OWNER_PHONE_NUMBER } = process.env;

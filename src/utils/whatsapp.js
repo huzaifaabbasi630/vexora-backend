@@ -1,26 +1,36 @@
 // src/utils/whatsapp.js
 const axios = require('axios');
 
-const BASE_URL = 'https://graph.facebook.com/v25.0';
+const BASE_URL = 'https://graph.facebook.com';
 
 function getHeaders() {
+  const accessToken = process.env.WHATSAPP_TOKEN || process.env.META_ACCESS_TOKEN;
+  if (!accessToken) {
+    throw new Error('WhatsApp access token is not configured.');
+  }
+
   return {
-    Authorization: `Bearer ${process.env.META_ACCESS_TOKEN}`,
+    Authorization: `Bearer ${accessToken}`,
     'Content-Type': 'application/json',
   };
 }
 
-async function sendWhatsAppMessage(payload) {
+async function sendWhatsAppMessage(payload, apiVersion = 'v25.0') {
+  const phoneNumberId = process.env.META_PHONE_NUMBER_ID || process.env.META_PHONE_NUMBER_ID;
+  if (!phoneNumberId) {
+    throw new Error('WhatsApp phone number ID is not configured.');
+  }
+
   try {
     const response = await axios.post(
-      `${BASE_URL}/${process.env.META_PHONE_NUMBER_ID}/messages`,
+      `${BASE_URL}/${apiVersion}/${phoneNumberId}/messages`,
       payload,
       { headers: getHeaders(), timeout: 15000 }
     );
 
     return response.data;
   } catch (error) {
-    console.error("WHATSAPP SEND ERROR RESPONSE:", error.response ? error.response.data : error.message);
+    console.error('❌ WhatsApp API Error:', error.response?.data || error.message);
     throw error;
   }
 }
@@ -105,6 +115,19 @@ async function sendCustomerConfirmationMessage(customerPhone, customerName, conf
   };
 
   return sendWhatsAppMessage(payload);
+}
+
+async function sendCustomerOrderConfirmedMessage(customerPhone, orderId) {
+  const payload = {
+    messaging_product: 'whatsapp',
+    to: formatPhoneNumber(customerPhone),
+    type: 'text',
+    text: {
+      body: `🎉 Order Confirmed! (ID: #${orderId}) \n Shukriya! Aapka order successfully confirm ho gaya hai.`,
+    },
+  };
+
+  return sendWhatsAppMessage(payload, 'v17.0');
 }
 
 // ─── Owner Interactive Message (Dispatched / On The Way buttons) ──────────────
@@ -257,6 +280,7 @@ async function sendWhatsAppText(toPhone, text) {
 module.exports = {
   formatPhoneNumber,
   sendCustomerConfirmationMessage,
+  sendCustomerOrderConfirmedMessage,
   sendOrderInteractiveMessage,
   sendOwnerTemplateMessage,
   sendWhatsAppText,
