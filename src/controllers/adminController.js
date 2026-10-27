@@ -164,7 +164,13 @@ const loginOwner = async (req, res) => {
         { challengeId },
         { $set: { status: 'expired', used: true } }
       );
-      console.error('❌ Admin Login Error:', err);
+      console.error('❌ Admin Login Error:', {
+        message: err.message,
+        code: err.code,
+        command: err.command,
+        responseCode: err.responseCode,
+        response: err.response,
+      });
       return res.status(503).json({ message: 'Unable to send the OTP right now. Please try again later.' });
     }
 
