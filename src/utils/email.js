@@ -18,7 +18,11 @@ const transporter = nodemailer.createTransport({
 });
 
 function getEmailConfigStatus() {
+  const resendConfigured = Boolean(process.env.RESEND_API_KEY);
   return {
+    provider: resendConfigured ? 'resend-api' : 'smtp',
+    resendApiKeyConfigured: resendConfigured,
+    senderConfigured: Boolean(process.env.EMAIL_FROM || process.env.EMAIL_USER),
     hostConfigured: Boolean(process.env.EMAIL_HOST),
     portConfigured: Boolean(process.env.EMAIL_PORT),
     userConfigured: Boolean(process.env.EMAIL_USER),
@@ -59,14 +63,34 @@ async function sendEmail(to, subject, templateName, variables = {}) {
     });
   }
 
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to,
-    subject,
-    html,
-  };
+  const from = process.env.EMAIL_FROM || process.env.EMAIL_USER;
+  if (!from) {
+    throw new Error('Email sender is not configured. Set EMAIL_FROM.');
+  }
 
-  return transporter.sendMail(mailOptions);
+  if (process.env.RESEND_API_KEY) {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ from, to, subject, html }),
+      signal: AbortSignal.timeout(15000),
+    });
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      const error = new Error(result.message || `Resend email request failed with status ${response.status}.`);
+      error.code = result.name || 'RESEND_API_ERROR';
+      error.responseCode = response.status;
+      throw error;
+    }
+
+    return { accepted: [to], rejected: [], messageId: result.id };
+  }
+
+  return transporter.sendMail({ from, to, subject, html });
 }
 
 function escapeHtml(value) {
