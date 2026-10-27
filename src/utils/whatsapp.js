@@ -10,6 +10,21 @@ function getHeaders() {
   };
 }
 
+async function sendWhatsAppMessage(payload) {
+  try {
+    const response = await axios.post(
+      `${BASE_URL}/${process.env.META_PHONE_NUMBER_ID}/messages`,
+      payload,
+      { headers: getHeaders(), timeout: 15000 }
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error("WHATSAPP SEND ERROR RESPONSE:", error.response ? error.response.data : error.message);
+    throw error;
+  }
+}
+
 // ─── Phone Number Formatter ────────────────────────────────────────────────────
 
 /**
@@ -89,13 +104,7 @@ async function sendCustomerConfirmationMessage(customerPhone, customerName, conf
     text: { body: text },
   };
 
-  const response = await axios.post(
-    `${BASE_URL}/${process.env.META_PHONE_NUMBER_ID}/messages`,
-    payload,
-    { headers: getHeaders(), timeout: 15000 }
-  );
-
-  return response.data;
+  return sendWhatsAppMessage(payload);
 }
 
 // ─── Owner Interactive Message (Dispatched / On The Way buttons) ──────────────
@@ -172,13 +181,7 @@ async function sendOrderInteractiveMessage(toPhone, order) {
     },
   };
 
-  const response = await axios.post(
-    `${BASE_URL}/${process.env.META_PHONE_NUMBER_ID}/messages`,
-    payload,
-    { headers: getHeaders(), timeout: 15000 }
-  );
-
-  return response.data;
+  return sendWhatsAppMessage(payload);
 }
 
 // ─── Owner Template Message (Approved Meta Template) ────────────────────────
@@ -228,13 +231,7 @@ async function sendOwnerTemplateMessage(ownerPhoneNumber, order) {
     },
   };
 
-  const response = await axios.post(
-    `${BASE_URL}/${process.env.META_PHONE_NUMBER_ID}/messages`,
-    payload,
-    { headers: getHeaders(), timeout: 15000 }
-  );
-
-  return response.data;
+  return sendWhatsAppMessage(payload);
 }
 
 // ─── Generic Plain-Text Sender ────────────────────────────────────────────────
@@ -254,13 +251,7 @@ async function sendWhatsAppText(toPhone, text) {
     text: { body: text },
   };
 
-  const response = await axios.post(
-    `${BASE_URL}/${process.env.META_PHONE_NUMBER_ID}/messages`,
-    payload,
-    { headers: getHeaders(), timeout: 15000 }
-  );
-
-  return response.data;
+  return sendWhatsAppMessage(payload);
 }
 
 module.exports = {

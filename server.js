@@ -145,8 +145,7 @@ app.post('/api/checkout', async (req, res) => {
 
     return res.status(200).json({ message: 'Order notification sent successfully.' });
   } catch (error) {
-    // Detailed error logging for debugging
-    console.error('DETAILED CHECKOUT ERROR:', error.response?.data || error.message || error);
+    console.error("WHATSAPP SEND ERROR RESPONSE:", error.response ? error.response.data : error.message);
     // If the error originated from validation, ensure a 400 response
     if (error?.isValidation) {
       return res.status(400).json({ message: error.message });
