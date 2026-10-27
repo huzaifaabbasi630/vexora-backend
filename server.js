@@ -8,6 +8,7 @@ const connectDB = require('./src/config/db')
 const productRoutes = require('./src/routes/products')
 const webhookRoutes = require('./src/routes/webhook')
 const { getWhatsAppConfigStatus } = require('./src/utils/whatsapp')
+const { getEmailConfigStatus } = require('./src/utils/email')
 const { getPublishedCmsPage } = require('./src/controllers/adminController')
 
 const app = express()
@@ -23,6 +24,7 @@ const allowedOrigins = [
 ]
 
 console.log('WhatsApp configuration status:', getWhatsAppConfigStatus())
+console.log('Email configuration status:', getEmailConfigStatus())
 
 app.use(cors({ origin: allowedOrigins }));
 app.use(express.json({ limit: '32kb' }));

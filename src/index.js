@@ -5,6 +5,7 @@ const cors = require('cors');
 const connectDB = require('./config/db');
 const { allowedOrigins, normalizeOrigin } = require('./config/allowedOrigins');
 const { getWhatsAppConfigStatus } = require('./utils/whatsapp');
+const { getEmailConfigStatus } = require('./utils/email');
 
 // Routes
 const authRoutes = require('./routes/auth');
@@ -19,6 +20,7 @@ const { getPublishedCmsPage, ensureOwnerExists } = require('./controllers/adminC
 const app = express();
 
 console.log('WhatsApp configuration status:', getWhatsAppConfigStatus());
+console.log('Email configuration status:', getEmailConfigStatus());
 
 connectDB()
   .then(() => ensureOwnerExists())

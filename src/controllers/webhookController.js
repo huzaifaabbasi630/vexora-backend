@@ -226,36 +226,60 @@ async function handleOrderConfirmation(orderId, fromNumber) {
 
     console.log(`📦 Order #${order._id} current status: ${order.status}`);
 
-    // Check if order is in PENDING status (prevent duplicate processing)
-    if (order.status !== 'Pending Confirmation') {
-      console.warn(`⚠️  Order #${orderId} is not in Pending Confirmation status. Current status: ${order.status}`);
+    if (!['Pending Confirmation', 'Confirmed'].includes(order.status)) {
+      console.warn(`⚠️ Order #${orderId} cannot process confirmation notifications from status "${order.status}".`);
       return;
     }
 
-    // ── SIMULTANEOUS ACTIONS: Update status, send email, send WhatsApp messages ──
-    
-    // 1. Update order status to CONFIRMED
-    order.status = 'Confirmed';
-    order.confirmedAt = new Date();
-    // Extend expiry to 30 days for confirmed orders
-    order.expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-    await order.save();
-    console.log(`✅ Order #${orderId} status updated to: "Confirmed"`);
+    if (order.status === 'Pending Confirmation') {
+      order.status = 'Confirmed';
+      order.confirmedAt = new Date();
+      order.expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      await order.save();
+      console.log(`✅ Order #${orderId} status updated to: "Confirmed"`);
+    } else {
+      console.log(`🔁 Retrying undelivered confirmation notifications for order #${orderId}.`);
+    }
+
+    const sentNotifications = order.confirmationNotifications || {};
 
     // Execute all notifications in parallel
     await Promise.allSettled([
       // 2. Send confirmation email to customer
       (async () => {
+        if (sentNotifications.emailSentAt) {
+          console.log(`ℹ️ Confirmation email already sent for order #${orderId}; skipping.`);
+          return;
+        }
         try {
-          await sendEmailConfirmation(order);
+          console.log(`📤 Starting confirmation email for order #${orderId}.`);
+          const result = await sendEmailConfirmation(order);
+          await Order.updateOne(
+            { _id: order._id },
+            { $set: { 'confirmationNotifications.emailSentAt': new Date() } }
+          );
           console.log('📧 Confirmation email sent to:', order.customerInfo.email);
+          console.log('📧 Confirmation email provider response:', {
+            messageId: result.messageId || null,
+            acceptedCount: result.accepted?.length || 0,
+            rejectedCount: result.rejected?.length || 0,
+          });
         } catch (err) {
-          console.error('❌ Email sending failed:', err.message);
+          console.error('❌ Email sending failed:', {
+            message: err.message,
+            code: err.code || null,
+            command: err.command || null,
+            responseCode: err.responseCode || null,
+          });
         }
       })(),
 
       // 3. Send WhatsApp receipt to customer
       (async () => {
+        if (sentNotifications.customerWhatsAppSentAt) {
+          console.log(`ℹ️ Customer WhatsApp already sent for order #${orderId}; skipping.`);
+          return;
+        }
         try {
           console.log('📤 Starting WhatsApp confirmation reply to customer:', {
             orderId,
@@ -292,8 +316,13 @@ async function handleOrderConfirmation(orderId, fromNumber) {
             'Hum jald hi aapka order dispatch kar dein ge! 🚚',
           ].join('\n');
           
-          await sendWhatsAppText(fromNumber, customerMessage);
+          const result = await sendWhatsAppText(fromNumber, customerMessage);
+          await Order.updateOne(
+            { _id: order._id },
+            { $set: { 'confirmationNotifications.customerWhatsAppSentAt': new Date() } }
+          );
           console.log('📲 WhatsApp confirmation reply completed for the customer sender.');
+          console.log('📲 Customer WhatsApp provider message ID:', result.messages?.[0]?.id || null);
         } catch (err) {
           console.error('❌ Customer WhatsApp failed:', err.response?.data || err.message);
         }
@@ -301,11 +330,19 @@ async function handleOrderConfirmation(orderId, fromNumber) {
 
       // 4. Send WhatsApp alert with interactive buttons to owner
       (async () => {
+        if (sentNotifications.ownerWhatsAppSentAt) {
+          console.log(`ℹ️ Owner WhatsApp already sent for order #${orderId}; skipping.`);
+          return;
+        }
         try {
           const { OWNER_PHONE_NUMBER } = process.env;
           if (OWNER_PHONE_NUMBER) {
             console.log('📤 Starting owner WhatsApp notification for confirmed order:', orderId);
             await sendOrderInteractiveMessage(OWNER_PHONE_NUMBER, order);
+            await Order.updateOne(
+              { _id: order._id },
+              { $set: { 'confirmationNotifications.ownerWhatsAppSentAt': new Date() } }
+            );
             console.log('📲 Owner WhatsApp notification completed:', orderId);
           } else {
             console.warn('⚠️  OWNER_PHONE_NUMBER not set – skipping owner WhatsApp');

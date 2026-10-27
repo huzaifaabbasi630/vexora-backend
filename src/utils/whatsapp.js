@@ -34,6 +34,7 @@ async function sendWhatsAppMessage(payload, apiVersion = 'v25.0') {
     const recipient = formatPhoneNumber(payload.to);
     console.log('📤 WhatsApp API request starting:', {
       apiVersion,
+      phoneNumberId,
       messageType: payload.type,
       recipientLast4: recipient.slice(-4),
       ...getWhatsAppConfigStatus(),

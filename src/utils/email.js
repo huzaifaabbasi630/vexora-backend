@@ -14,6 +14,15 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+function getEmailConfigStatus() {
+  return {
+    hostConfigured: Boolean(process.env.EMAIL_HOST),
+    portConfigured: Boolean(process.env.EMAIL_PORT),
+    userConfigured: Boolean(process.env.EMAIL_USER),
+    passwordConfigured: Boolean(process.env.EMAIL_PASS),
+  };
+}
+
 /**
  * Send an email with an HTML template.
  * @param {string} to Recipient email address
@@ -67,4 +76,4 @@ function escapeHtml(value) {
   })[character]);
 }
 
-module.exports = { sendEmail, transporter };
+module.exports = { sendEmail, transporter, getEmailConfigStatus };
