@@ -19,6 +19,13 @@ const confirmationNotificationsSchema = new mongoose.Schema({
   ownerWhatsAppSentAt: { type: Date, default: null },
 }, { _id: false });
 
+const statusNotificationsSchema = new mongoose.Schema({
+  dispatchedEmailSentAt: { type: Date, default: null },
+  dispatchedWhatsAppSentAt: { type: Date, default: null },
+  onTheWayEmailSentAt: { type: Date, default: null },
+  onTheWayWhatsAppSentAt: { type: Date, default: null },
+}, { _id: false });
+
 const orderSchema = new mongoose.Schema({
   // Customer details collected at checkout (no login required)
   customerInfo: {
@@ -41,6 +48,10 @@ const orderSchema = new mongoose.Schema({
   confirmedAt: { type: Date, default: null },
   confirmationNotifications: {
     type: confirmationNotificationsSchema,
+    default: () => ({}),
+  },
+  statusNotifications: {
+    type: statusNotificationsSchema,
     default: () => ({}),
   },
 

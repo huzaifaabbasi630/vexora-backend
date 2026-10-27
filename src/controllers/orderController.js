@@ -10,6 +10,7 @@ const {
   sendCustomerOrderConfirmedMessage,
   sendOrderInteractiveMessage,
   sendOwnerTemplateMessage,
+  sendWhatsAppText,
 } = require('../utils/whatsapp');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -61,6 +62,19 @@ function escapeHtml(str) {
     '"': '&quot;',
     "'": '&#39;',
   })[c]);
+}
+
+function normalizeOrderStatus(rawStatus) {
+  const status = String(rawStatus || '')
+    .replace(/%20/gi, ' ')
+    .replace(/[_-]+/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
+
+  if (status === 'dispatched') return 'Dispatched';
+  if (status === 'on the way' || status === 'ontheway') return 'On The Way';
+  return null;
 }
 
 // ─── POST /api/checkout ───────────────────────────────────────────────────────
@@ -370,60 +384,89 @@ exports.confirmOrder = async (req, res) => {
 exports.updateOrderStatus = async (req, res) => {
   try {
     const { orderId, status } = req.params;
+    const validStatus = normalizeOrderStatus(status);
+    console.log('🔗 Owner order-status link opened:', {
+      orderId,
+      requestedStatus: status,
+      normalizedStatus: validStatus,
+    });
+
+    if (!mongoose.isValidObjectId(orderId)) {
+      return res.status(400).send('<h2>Invalid order link</h2>');
+    }
+    if (!validStatus) {
+      return res.status(400).send('<h2>Invalid order status link</h2>');
+    }
+
     const order = await Order.findById(orderId);
 
     if (!order) {
       return res.status(404).send('<h2>Order not found</h2>');
     }
 
-    const validStatus =
-      status === 'Dispatched' ? 'Dispatched' : 'On The Way';
+    const sameStatus = order.status === validStatus;
+    const statusKey = validStatus === 'Dispatched' ? 'dispatched' : 'onTheWay';
+    const emailSentAtKey = `${statusKey}EmailSentAt`;
+    const whatsappSentAtKey = `${statusKey}WhatsAppSentAt`;
 
-    // ── IDEMPOTENCY CHECK: Prevent duplicate notifications ──
-    if (order.status === validStatus) {
-      console.log(`⚠️  Order #${orderId} is already "${validStatus}". Skipping duplicate notifications.`);
-      return res.send(renderBrandedOrderPage({
-        title: 'Order Already Updated | VEXORA',
-        eyebrow: 'ORDER UPDATE',
-        heading: 'Yeh Order Pehle Hi Update Ho Chuka Hai!',
-        intro: `Order #${order._id}`,
-        message: `⚠️ Yeh Order Pehle Hi Update Ho Chuka Hai! Order status is already ${validStatus}. No duplicate notifications were sent.`,
-        orderId: order._id,
-        icon: '&#9888;',
-      }));
+    if (sameStatus) {
+      console.log(`🔁 Retrying any undelivered "${validStatus}" notifications for order #${orderId}.`);
+    } else {
+      order.status = validStatus;
+      await order.save();
+      console.log(`✅ Order #${orderId} status updated: "${validStatus}"`);
     }
 
-    order.status = validStatus;
-    await order.save();
-
-    console.log(
-      `✅ Order #${orderId} status updated: "${validStatus}"`
-    );
-
     const { email, phone, name } = order.customerInfo || {};
-    let emailSent = false;
-    let whatsappSent = false;
+    let emailSent = Boolean(order.statusNotifications?.[emailSentAtKey]);
+    let whatsappSent = Boolean(order.statusNotifications?.[whatsappSentAtKey]);
 
     // ── SIMULTANEOUS NOTIFICATIONS: Email + WhatsApp ──
     await Promise.allSettled([
       // Send email to customer
       (async () => {
+        if (emailSent) {
+          console.log(`ℹ️ "${validStatus}" email already sent for order #${orderId}; skipping.`);
+          return;
+        }
         if (!email) {
           console.warn(`⚠️  No email in customerInfo for order #${orderId} — skipping email.`);
           return;
         }
-        console.log(`📧 Sending "${validStatus}" status email to:`, email);
+        console.log(`📧 Sending "${validStatus}" email using the matching status template.`);
         try {
-          await sendOrderStatusEmail(order, validStatus);
+          const result = await sendOrderStatusEmail(order, validStatus);
+          const accepted = result.accepted?.some((recipient) =>
+            String(recipient).toLowerCase() === email.toLowerCase()
+          );
+          const rejected = result.rejected?.some((recipient) =>
+            String(recipient).toLowerCase() === email.toLowerCase()
+          );
+          if (rejected || !accepted) {
+            throw new Error(`Mail provider did not accept the ${validStatus} email recipient.`);
+          }
+          await Order.updateOne(
+            { _id: order._id },
+            { $set: { [`statusNotifications.${emailSentAtKey}`]: new Date() } }
+          );
           emailSent = true;
-          console.log(`✅ "${validStatus}" email sent to ${email}`);
+          console.log(`✅ "${validStatus}" email accepted by mail provider.`);
         } catch (mailErr) {
-          console.error('❌ Email error:', mailErr.message);
+          console.error('❌ Email error:', {
+            message: mailErr.message,
+            code: mailErr.code || null,
+            command: mailErr.command || null,
+            responseCode: mailErr.responseCode || null,
+          });
         }
       })(),
 
       // Send WhatsApp message to customer
       (async () => {
+        if (whatsappSent) {
+          console.log(`ℹ️ "${validStatus}" WhatsApp already sent for order #${orderId}; skipping.`);
+          return;
+        }
         if (!phone) {
           console.warn(`⚠️  No phone in customerInfo for order #${orderId} — skipping WhatsApp.`);
           return;
@@ -446,10 +489,14 @@ exports.updateOrderStatus = async (req, res) => {
           ].join('\n');
           
           await sendWhatsAppText(formattedPhone, statusMessage);
+          await Order.updateOne(
+            { _id: order._id },
+            { $set: { [`statusNotifications.${whatsappSentAtKey}`]: new Date() } }
+          );
           whatsappSent = true;
-          console.log(`✅ "${validStatus}" WhatsApp sent to ${formattedPhone}`);
+          console.log(`✅ "${validStatus}" WhatsApp request accepted for customer ending in ${formattedPhone.slice(-4)}.`);
         } catch (waErr) {
-          console.error('❌ WhatsApp error:', waErr.message);
+          console.error('❌ WhatsApp error:', waErr.response?.data || waErr.message);
         }
       })(),
     ]);
@@ -459,7 +506,7 @@ exports.updateOrderStatus = async (req, res) => {
     if (whatsappSent) notificationNotice.push('WhatsApp');
     const noticeText = notificationNotice.length > 0 
       ? `Customer notification (${notificationNotice.join(' & ')}) has been sent.`
-      : 'No customer notifications were sent (missing contact info).';
+      : 'No customer notifications were sent. Check the server logs and open this link again to retry.';
 
     return res.send(renderBrandedOrderPage({
       title: 'Order Status Updated | VEXORA',
