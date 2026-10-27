@@ -99,73 +99,79 @@ const ensureOwnerExists = async () => {
 };
 
 const loginOwner = async (req, res) => {
-  const { email = '', password = '' } = req.body || {};
-  const normalizedEmail = String(email).trim().toLowerCase();
-  const rateLimit = consumeRateLimit(req, 'login', 5, 15 * 60 * 1000);
-
-  if (!rateLimit.allowed) {
-    return res.status(429).json({ message: 'Too many attempts. Please try again later.', retryAfter: rateLimit.retryAfter });
-  }
-
-  if (!normalizedEmail || !String(password).trim()) {
-    return res.status(400).json({ message: 'Email and password are required.' });
-  }
-
-  const owner = await ensureOwnerExists();
-
-  if (!owner || owner.role !== 'owner' || owner.isOwner !== true || owner.isActive === false || normalizedEmail !== OWNER_EMAIL) {
-    return res.status(401).json({ message: 'Invalid email or password.' });
-  }
-
-  const passwordMatches = await bcrypt.compare(String(password), owner.password || '');
-  if (!passwordMatches) {
-    return res.status(401).json({ message: 'Invalid email or password.' });
-  }
-
-  await invalidatePendingChallenges(owner.email);
-
-  const otp = crypto.randomInt(100000, 1000000).toString().padStart(6, '0');
-  const challengeId = crypto.randomUUID();
-  const otpHash = await bcrypt.hash(otp, 10);
-
-  await AdminChallenge.create({
-    ownerEmail: owner.email,
-    challengeId,
-    otpHash,
-    expiresAt: new Date(Date.now() + OTP_WINDOW_MS),
-    lastResentAt: new Date(),
-    attempts: 0,
-    used: false,
-    status: 'pending',
-  });
-
   try {
-    await sendEmail(
-      owner.email,
-      'VEXORA Owner Admin Login Code',
-      'ownerOtp',
-      {
-        name: owner.name || 'Owner',
-        code: otp,
-        expiresIn: '5 minutes',
-      }
-    );
-  } catch (error) {
-    await AdminChallenge.updateOne(
-      { challengeId },
-      { $set: { status: 'expired', used: true } }
-    );
-    console.error(`Owner OTP email failed (${error.code || 'EMAIL_ERROR'}).`);
-    return res.status(503).json({ message: 'Unable to send the OTP right now. Please try again later.' });
+    const { email = '', password = '' } = req.body || {};
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const rateLimit = consumeRateLimit(req, 'login', 5, 15 * 60 * 1000);
+
+    if (!rateLimit.allowed) {
+      return res.status(429).json({ message: 'Too many attempts. Please try again later.', retryAfter: rateLimit.retryAfter });
+    }
+
+    if (!normalizedEmail || !String(password).trim()) {
+      return res.status(400).json({ message: 'Email and password are required.' });
+    }
+
+    const owner = await ensureOwnerExists();
+
+    if (!owner || owner.role !== 'owner' || owner.isOwner !== true || owner.isActive === false || normalizedEmail !== OWNER_EMAIL) {
+      return res.status(401).json({ message: 'Invalid email or password.' });
+    }
+
+    const passwordMatches = await bcrypt.compare(String(password), owner.password || '');
+    if (!passwordMatches) {
+      return res.status(401).json({ message: 'Invalid email or password.' });
+    }
+
+    await invalidatePendingChallenges(owner.email);
+
+    const otp = crypto.randomInt(100000, 1000000).toString().padStart(6, '0');
+    const challengeId = crypto.randomUUID();
+    const otpHash = await bcrypt.hash(otp, 10);
+
+    await AdminChallenge.create({
+      ownerEmail: owner.email,
+      challengeId,
+      otpHash,
+      expiresAt: new Date(Date.now() + OTP_WINDOW_MS),
+      lastResentAt: new Date(),
+      attempts: 0,
+      used: false,
+      status: 'pending',
+    });
+
+    try {
+      await sendEmail(
+        owner.email,
+        'VEXORA Owner Admin Login Code',
+        'ownerOtp',
+        {
+          name: owner.name || 'Owner',
+          code: otp,
+          expiresIn: '5 minutes',
+        }
+      );
+    } catch (err) {
+      await AdminChallenge.updateOne(
+        { challengeId },
+        { $set: { status: 'expired', used: true } }
+      );
+      console.error('❌ Admin Login Error:', err);
+      return res.status(503).json({ message: 'Unable to send the OTP right now. Please try again later.' });
+    }
+
+    await logAuditAction(owner, 'owner_login_requested', { targetType: 'owner_auth', payload: { challengeId, requestIp: getClientIp(req) } }, req);
+
+    return res.status(200).json({
+      message: 'Check your email for the verification code.',
+      challengeId,
+      maskedEmail: getMaskedEmail(owner.email),
+    });
+  } catch (err) {
+    console.error('❌ Admin Login Error:', err);
+    if (res.headersSent) return;
+    return res.status(500).json({ message: 'Unable to process admin login right now. Please try again later.' });
   }
-
-  await logAuditAction(owner, 'owner_login_requested', { targetType: 'owner_auth', payload: { challengeId, requestIp: getClientIp(req) } }, req);
-
-  return res.status(200).json({
-    message: 'Check your email for the verification code.',
-    challengeId,
-    maskedEmail: getMaskedEmail(owner.email),
-  });
 };
 
 const resendOtp = async (req, res) => {
