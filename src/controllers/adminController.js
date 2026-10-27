@@ -160,18 +160,19 @@ const loginOwner = async (req, res) => {
       }
       console.log('✅ Admin OTP email accepted by SMTP.');
     } catch (err) {
-      await AdminChallenge.updateOne(
-        { challengeId },
-        { $set: { status: 'expired', used: true } }
-      );
-      console.error('❌ Admin Login Error:', {
-        message: err.message,
-        code: err.code,
-        command: err.command,
-        responseCode: err.responseCode,
-        response: err.response,
+      console.error('❌ Admin Login Email Error:', err);
+      try {
+        await AdminChallenge.updateOne(
+          { challengeId },
+          { $set: { status: 'expired', used: true } }
+        );
+      } catch (cleanupError) {
+        console.error('❌ Admin Login Challenge Cleanup Error:', cleanupError);
+      }
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to send OTP. Please check SMTP settings.',
       });
-      return res.status(503).json({ message: 'Unable to send the OTP right now. Please try again later.' });
     }
 
     await logAuditAction(owner, 'owner_login_requested', { targetType: 'owner_auth', payload: { challengeId, requestIp: getClientIp(req) } }, req);
@@ -185,7 +186,10 @@ const loginOwner = async (req, res) => {
   } catch (err) {
     console.error('❌ Admin Login Error:', err);
     if (res.headersSent) return;
-    return res.status(500).json({ message: 'Unable to process admin login right now. Please try again later.' });
+    return res.status(500).json({
+      success: false,
+      message: 'Unable to process admin login right now. Please try again later.',
+    });
   }
 };
 
