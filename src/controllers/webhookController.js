@@ -20,11 +20,11 @@ exports.verifyWebhook = (req, res) => {
   const challenge = req.query['hub.challenge'];
 
   if (mode === 'subscribe' && token === process.env.HUB_VERIFY_TOKEN) {
-    console.log('✅ WhatsApp webhook verified');
+    console.log('✅ WhatsApp webhook verification request succeeded.');
     return res.status(200).send(challenge);
   }
 
-  console.warn('❌ Webhook verification failed – token mismatch');
+  console.warn('❌ WhatsApp webhook verification failed: mode or verify token did not match.');
   return res.sendStatus(403);
 };
 
@@ -34,8 +34,7 @@ exports.handleWebhook = async (req, res) => {
   // Always acknowledge immediately so Meta doesn't retry
   res.sendStatus(200);
 
-  // 1. Full Payload Log
-  console.log("🔥 FULL META WEBHOOK PAYLOAD:", JSON.stringify(req.body, null, 2));
+  console.log('📩 WhatsApp webhook payload accepted for processing.');
 
   try {
     const entry   = req.body.entry?.[0];
@@ -45,12 +44,16 @@ exports.handleWebhook = async (req, res) => {
 
     // Not a message event (e.g. delivery receipts / read receipts) — ignore
     if (!message) {
-      console.log('ℹ️  No messages[] in payload — likely a status/receipt event, ignoring.');
+      console.log('ℹ️ WhatsApp webhook contains no incoming message; ignoring status/receipt event.');
       return;
     }
 
     // Extract sender phone number
     const fromNumber = message.from;
+    console.log('📨 Incoming WhatsApp message received:', {
+      messageType: message.type,
+      senderLast4: typeof fromNumber === 'string' ? fromNumber.slice(-4) : null,
+    });
 
     // Handle button clicks (existing functionality)
     let buttonId = null;
@@ -63,6 +66,7 @@ exports.handleWebhook = async (req, res) => {
 
     if (buttonId) {
       // Handle existing button click logic (Dispatched / On The Way)
+      console.log('🔘 WhatsApp interactive button reply received.');
       await handleButtonClick(buttonId);
       return;
     }
@@ -70,17 +74,17 @@ exports.handleWebhook = async (req, res) => {
     // Handle text messages for order confirmation
     if (message?.type === 'text') {
       const textBody = message.text?.body || '';
-      console.log("💬 Text message received:", textBody);
+      console.log('💬 WhatsApp text message received; checking for an order confirmation ID.');
 
       // Check if message contains # followed by Order ID
       const orderMatch = textBody.match(/#([a-f0-9]{24})/i);
       
       if (orderMatch) {
         const orderId = orderMatch[1];
-        console.log("🔍 Order ID found in message:", orderId);
+        console.log('🔍 Order ID found in WhatsApp confirmation message:', orderId);
         await handleOrderConfirmation(orderId, fromNumber);
       } else {
-        console.log('ℹ️  Text message does not contain order ID pattern (#orderId)');
+        console.log('ℹ️ WhatsApp text did not contain the expected #<24-character order ID>.');
       }
       return;
     }
@@ -203,6 +207,7 @@ async function handleButtonClick(buttonId) {
 
 async function handleOrderConfirmation(orderId, fromNumber) {
   try {
+    console.log('🔄 WhatsApp order confirmation flow started:', orderId);
     // Validate order ID
     if (!orderId || orderId.length !== 24) {
       console.error('❌ Invalid order ID format:', orderId);
@@ -210,16 +215,16 @@ async function handleOrderConfirmation(orderId, fromNumber) {
     }
 
     // Search for order in database
-    console.log("🔍 SEARCHING ORDER IN DB FOR ID:", orderId);
+    console.log('🔍 Looking up order for WhatsApp confirmation:', orderId);
     const order = await Order.findById(orderId);
-    console.log("📦 ORDER FOUND STATUS:", order ? "YES" : "NO");
+    console.log('📦 Order lookup completed:', { found: Boolean(order), status: order?.status || null });
 
     if (!order) {
       console.error(`❌ Order not found in DB for ID: "${orderId}"`);
       return;
     }
 
-    console.log(`📦 Order details: #${order._id} | customer: ${order.customerInfo?.name} | current status: ${order.status}`);
+    console.log(`📦 Order #${order._id} current status: ${order.status}`);
 
     // Check if order is in PENDING status (prevent duplicate processing)
     if (order.status !== 'Pending Confirmation') {
@@ -242,6 +247,7 @@ async function handleOrderConfirmation(orderId, fromNumber) {
       // 2. Send confirmation email to customer
       (async () => {
         try {
+          console.log('📤 Starting WhatsApp confirmation reply to the customer sender.');
           await sendEmailConfirmation(order);
           console.log('📧 Confirmation email sent to:', order.customerInfo.email);
         } catch (err) {
@@ -283,9 +289,9 @@ async function handleOrderConfirmation(orderId, fromNumber) {
           ].join('\n');
           
           await sendWhatsAppText(fromNumber, customerMessage);
-          console.log('📲 WhatsApp receipt sent to customer:', formatPhoneNumber(fromNumber));
+          console.log('📲 WhatsApp confirmation reply completed for the customer sender.');
         } catch (err) {
-          console.error('❌ Customer WhatsApp failed:', err.message);
+          console.error('❌ Customer WhatsApp failed:', err.response?.data || err.message);
         }
       })(),
 
@@ -294,8 +300,9 @@ async function handleOrderConfirmation(orderId, fromNumber) {
         try {
           const { OWNER_PHONE_NUMBER } = process.env;
           if (OWNER_PHONE_NUMBER) {
+            console.log('📤 Starting owner WhatsApp notification for confirmed order:', orderId);
             await sendOrderInteractiveMessage(OWNER_PHONE_NUMBER, order);
-            console.log('📲 WhatsApp interactive buttons sent to owner');
+            console.log('📲 Owner WhatsApp notification completed:', orderId);
           } else {
             console.warn('⚠️  OWNER_PHONE_NUMBER not set – skipping owner WhatsApp');
           }
@@ -305,9 +312,9 @@ async function handleOrderConfirmation(orderId, fromNumber) {
       })(),
     ]);
 
-    console.log(`✅ All notifications triggered for order #${orderId}`);
+    console.log(`✅ WhatsApp order confirmation workflow completed for order #${orderId}.`);
 
   } catch (err) {
-    console.error('❌ ORDER CONFIRMATION ERROR:', err);
+    console.error('❌ WhatsApp order confirmation workflow failed:', err.response?.data || err.message);
   }
 }

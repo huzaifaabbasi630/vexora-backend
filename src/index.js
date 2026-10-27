@@ -4,6 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
 const { allowedOrigins, normalizeOrigin } = require('./config/allowedOrigins');
+const { getWhatsAppConfigStatus } = require('./utils/whatsapp');
 
 // Routes
 const authRoutes = require('./routes/auth');
@@ -16,6 +17,8 @@ const reviewRoutes = require('./routes/reviews');
 const { getPublishedCmsPage, ensureOwnerExists } = require('./controllers/adminController');
 
 const app = express();
+
+console.log('WhatsApp configuration status:', getWhatsAppConfigStatus());
 
 connectDB()
   .then(() => ensureOwnerExists())
@@ -34,9 +37,9 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Intercept & log every raw request to /webhook
+// Log webhook arrival without writing customer message contents to runtime logs.
 app.use('/webhook', (req, _res, next) => {
-  console.log('🔥 RAW WEBHOOK HIT:', req.method, req.url, JSON.stringify(req.body));
+  console.log('📩 WhatsApp webhook HTTP request received:', req.method, req.path);
   next();
 });
 

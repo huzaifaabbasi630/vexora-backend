@@ -66,6 +66,7 @@ function escapeHtml(str) {
 // ─── POST /api/checkout ───────────────────────────────────────────────────────
 
 exports.checkout = async (req, res) => {
+  console.log('🛒 Checkout request received.');
   try {
     const { customerInfo, cartItems } = req.body || {};
 
@@ -122,6 +123,7 @@ exports.checkout = async (req, res) => {
       return res.status(400).json({ message: 'A single order may contain at most 30 cart lines.' });
     }
 
+    console.log('🔎 Checkout validation passed; checking products:', cartItems.length);
     const orderItems = [];
     for (const item of cartItems) {
       if (!item || typeof item !== 'object' || Array.isArray(item)) {
@@ -186,10 +188,9 @@ exports.checkout = async (req, res) => {
       expiresAt: daysFromNow(1),
     });
 
-    console.log('✅ Order saved:', order._id);
+    console.log('✅ Order saved as Pending Confirmation:', order._id);
 
-    // ── DEFERRED NOTIFICATION: No email or WhatsApp sent during checkout ───────
-    // Notifications will be triggered after customer confirms via WhatsApp
+    console.log('⏳ Waiting for the customer to send the order confirmation message through WhatsApp.');
 
     return res.status(200).json({
       message: 'Order received! Please confirm via WhatsApp.',
@@ -215,12 +216,14 @@ exports.confirmOrder = async (req, res) => {
   const decremented = [];
   try {
     const { orderId } = req.params;
+    console.log('🔔 Order confirmation link requested:', orderId);
     if (!mongoose.isValidObjectId(orderId)) {
       return res.status(400).send('<h2>Invalid order confirmation link.</h2>');
     }
     const order = await Order.findById(orderId);
 
     if (!order) {
+      console.warn('⚠️ Order confirmation link does not match an order:', orderId);
       return res.status(404).send(`
         <h2>Order not found or link has expired.</h2>
         <p>Your confirmation link may have expired (24 hours). Please place your order again.</p>
@@ -243,8 +246,10 @@ exports.confirmOrder = async (req, res) => {
       { new: true }
     );
     if (!claimedOrder) {
+      console.warn('⚠️ Order confirmation claim failed; another request may be processing it:', orderId);
       return res.status(409).send('<h2>This order confirmation link has already been used.</h2>');
     }
+    console.log('🔒 Order confirmation claimed; checking inventory:', orderId);
 
     for (const item of claimedOrder.cartItems) {
       if (!item.productId) continue;
@@ -283,14 +288,16 @@ exports.confirmOrder = async (req, res) => {
     console.log('✅ Order confirmed:', confirmedOrder._id);
 
     try {
+      console.log('📤 Starting customer WhatsApp confirmation:', confirmedOrder._id);
       await sendCustomerOrderConfirmedMessage(
         confirmedOrder.customerInfo.phone,
         confirmedOrder._id
       );
-      console.log('📲 WhatsApp order confirmation sent to customer');
+      console.log('📲 Customer WhatsApp confirmation completed:', confirmedOrder._id);
     } catch (waErr) {
       console.error(
-        'Customer WhatsApp confirmation failed; order remains confirmed.'
+        '❌ Customer WhatsApp confirmation failed; order remains confirmed:',
+        waErr.response?.data || waErr.message
       );
     }
 
@@ -299,8 +306,9 @@ exports.confirmOrder = async (req, res) => {
 
     if (OWNER_PHONE_NUMBER) {
       try {
+        console.log('📤 Starting owner WhatsApp notification:', confirmedOrder._id);
         await sendOrderInteractiveMessage(OWNER_PHONE_NUMBER, confirmedOrder);
-        console.log('📲 WhatsApp interactive buttons sent to owner');
+        console.log('📲 Owner WhatsApp notification completed:', confirmedOrder._id);
       } catch (waErr) {
         console.error(
           '⚠️ WhatsApp owner notification failed:',

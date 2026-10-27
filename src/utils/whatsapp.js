@@ -15,19 +15,42 @@ function getHeaders() {
   };
 }
 
-async function sendWhatsAppMessage(payload, apiVersion = 'v25.0') {
-  const phoneNumberId = process.env.META_PHONE_NUMBER_ID || process.env.META_PHONE_NUMBER_ID;
-  if (!phoneNumberId) {
-    throw new Error('WhatsApp phone number ID is not configured.');
-  }
+function getWhatsAppConfigStatus() {
+  return {
+    accessTokenConfigured: Boolean(process.env.WHATSAPP_TOKEN || process.env.META_ACCESS_TOKEN),
+    accessTokenSource: process.env.WHATSAPP_TOKEN ? 'WHATSAPP_TOKEN' : process.env.META_ACCESS_TOKEN ? 'META_ACCESS_TOKEN' : null,
+    phoneNumberIdConfigured: Boolean(process.env.PHONE_NUMBER_ID || process.env.META_PHONE_NUMBER_ID),
+    phoneNumberIdSource: process.env.PHONE_NUMBER_ID ? 'PHONE_NUMBER_ID' : process.env.META_PHONE_NUMBER_ID ? 'META_PHONE_NUMBER_ID' : null,
+  };
+}
 
+async function sendWhatsAppMessage(payload, apiVersion = 'v25.0') {
   try {
+    const phoneNumberId = process.env.PHONE_NUMBER_ID || process.env.META_PHONE_NUMBER_ID;
+    if (!phoneNumberId) {
+      throw new Error('WhatsApp phone number ID is not configured. Set PHONE_NUMBER_ID or META_PHONE_NUMBER_ID.');
+    }
+
+    const recipient = formatPhoneNumber(payload.to);
+    console.log('📤 WhatsApp API request starting:', {
+      apiVersion,
+      messageType: payload.type,
+      recipientLast4: recipient.slice(-4),
+      ...getWhatsAppConfigStatus(),
+    });
+
     const response = await axios.post(
       `${BASE_URL}/${apiVersion}/${phoneNumberId}/messages`,
       payload,
       { headers: getHeaders(), timeout: 15000 }
     );
 
+    console.log('✅ WhatsApp API request succeeded:', {
+      apiVersion,
+      recipientLast4: recipient.slice(-4),
+      httpStatus: response.status,
+      messageId: response.data?.messages?.[0]?.id || null,
+    });
     return response.data;
   } catch (error) {
     console.error('❌ WhatsApp API Error:', error.response?.data || error.message);
@@ -284,4 +307,5 @@ module.exports = {
   sendOrderInteractiveMessage,
   sendOwnerTemplateMessage,
   sendWhatsAppText,
+  getWhatsAppConfigStatus,
 };
