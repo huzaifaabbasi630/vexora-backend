@@ -25,6 +25,7 @@ const productSchema = new mongoose.Schema({
   shortDescription: { type: String, default: '', trim: true, maxlength: 500 },
   sku: { type: String, trim: true, uppercase: true, maxlength: 80, default: '' },
   category: { type: String, required: true, trim: true, maxlength: 100 },
+  categories: { type: [{ type: String, trim: true, maxlength: 100 }], default: [] },
   tags: { type: [String], default: [] },
   regularPrice: { type: Number, required: true, min: 0 },
   salePrice: { type: Number, min: 0, default: null },
@@ -51,6 +52,7 @@ productSchema.path('salePrice').validate(function validateSalePrice(value) {
 }, 'Sale price must be less than regular price.');
 
 productSchema.index({ status: 1, category: 1, createdAt: -1 });
+productSchema.index({ status: 1, categories: 1, createdAt: -1 });
 productSchema.index({ status: 1, featured: 1, newArrival: 1 });
 productSchema.index({ sku: 1 }, { unique: true, partialFilterExpression: { sku: { $type: 'string', $gt: '' } } });
 

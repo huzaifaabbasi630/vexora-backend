@@ -4,6 +4,11 @@ const path = require('path');
 
 const configuredEmailPort = Number.parseInt(process.env.EMAIL_PORT, 10);
 const emailPort = [465, 587].includes(configuredEmailPort) ? configuredEmailPort : 587;
+const getEmailProvider = () => (
+  process.env.EMAIL_PROVIDER
+    ? process.env.EMAIL_PROVIDER.trim().toLowerCase()
+    : (process.env.RESEND_API_KEY ? 'resend' : 'smtp')
+);
 
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST || 'smtp.gmail.com',
@@ -25,10 +30,10 @@ const transporter = nodemailer.createTransport({
 });
 
 function getEmailConfigStatus() {
-  const resendConfigured = Boolean(process.env.RESEND_API_KEY);
+  const provider = getEmailProvider();
   return {
-    provider: resendConfigured ? 'resend-api' : 'smtp',
-    resendApiKeyConfigured: resendConfigured,
+    provider,
+    resendApiKeyConfigured: Boolean(process.env.RESEND_API_KEY),
     senderConfigured: Boolean(process.env.EMAIL_FROM || process.env.EMAIL_USER),
     hostConfigured: Boolean(process.env.EMAIL_HOST),
     portConfigured: Boolean(process.env.EMAIL_PORT),
@@ -70,12 +75,19 @@ async function sendEmail(to, subject, templateName, variables = {}) {
     });
   }
 
+  const provider = getEmailProvider();
   const from = process.env.EMAIL_FROM || process.env.EMAIL_USER;
   if (!from) {
     throw new Error('Email sender is not configured. Set EMAIL_FROM.');
   }
 
-  if (process.env.RESEND_API_KEY) {
+  if (provider === 'resend') {
+    if (!process.env.RESEND_API_KEY) {
+      const error = new Error('RESEND_API_KEY is required when EMAIL_PROVIDER is set to resend.');
+      error.code = 'EMAIL_PROVIDER_NOT_CONFIGURED';
+      throw error;
+    }
+
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -95,6 +107,12 @@ async function sendEmail(to, subject, templateName, variables = {}) {
     }
 
     return { accepted: [to], rejected: [], messageId: result.id };
+  }
+
+  if (provider !== 'smtp') {
+    const error = new Error(`Unsupported email provider "${provider}". Set EMAIL_PROVIDER to "resend" or "smtp".`);
+    error.code = 'EMAIL_PROVIDER_INVALID';
+    throw error;
   }
 
   return transporter.sendMail({ from, to, subject, html });

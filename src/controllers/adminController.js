@@ -156,9 +156,9 @@ const loginOwner = async (req, res) => {
       const emailAccepted = Array.isArray(emailResult?.accepted)
         && emailResult.accepted.some((recipient) => String(recipient).toLowerCase() === owner.email.toLowerCase());
       if (!emailAccepted) {
-        throw new Error('SMTP did not accept the admin OTP recipient.');
+        throw new Error('The email provider did not accept the admin OTP recipient.');
       }
-      console.log('✅ Admin OTP email accepted by SMTP.');
+      console.log('✅ Admin OTP email accepted by the configured provider.');
     } catch (err) {
       console.error('❌ Admin Login Email Error:', err);
       try {
@@ -171,7 +171,7 @@ const loginOwner = async (req, res) => {
       }
       return res.status(500).json({
         success: false,
-        message: 'Failed to send OTP. Please check SMTP settings.',
+        message: 'Failed to send OTP. Please check the configured email provider.',
       });
     }
 
