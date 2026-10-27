@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const Product = require('../models/Product');
+const Order = require('../models/Order');
 const AdminAuditLog = require('../models/AdminAuditLog');
 
 const slugify = (value) => String(value || '')
@@ -234,12 +235,46 @@ exports.listPublicProducts = async (req, res) => {
 
 exports.getPublicProduct = async (req, res) => {
   const key = cleanString(req.params.slug, 180).toLowerCase();
-  const product = await Product.findOne({
+  const product = await Product.findOneAndUpdate({
     status: 'published',
     $or: [{ slug: key }, { legacyId: key }],
-  }).lean();
+  }, { $inc: { viewCount: 1 } }, { new: true }).lean();
   if (!product) return res.status(404).json({ message: 'Product not found.' });
   return res.json({ product: toPublicProduct(product) });
+};
+
+exports.trackPublicProductView = async (req, res) => {
+  const key = cleanString(req.params.slug, 180).toLowerCase();
+  const product = await Product.findOneAndUpdate({
+    status: 'published',
+    $or: [{ slug: key }, { legacyId: key }],
+  }, { $inc: { viewCount: 1 } }, { new: true, projection: { _id: 1, viewCount: 1 } }).lean();
+  if (!product) return res.status(404).json({ message: 'Product not found.' });
+  return res.status(204).end();
+};
+
+exports.listPopularPublicProducts = async (req, res) => {
+  const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 100));
+  const [products, sales] = await Promise.all([
+    Product.find({ status: 'published' }).lean(),
+    Order.aggregate([
+      { $match: { status: { $in: ['Confirmed', 'Dispatched', 'On The Way', 'Delivered'] } } },
+      { $unwind: '$cartItems' },
+      { $match: { 'cartItems.productId': { $ne: null } } },
+      { $group: { _id: '$cartItems.productId', unitsSold: { $sum: '$cartItems.qty' } } },
+    ]),
+  ]);
+  const unitsSoldByProduct = new Map(sales.map((sale) => [String(sale._id), sale.unitsSold]));
+  const ranked = products
+    .map((product) => ({
+      ...product,
+      unitsSold: unitsSoldByProduct.get(String(product._id)) || 0,
+    }))
+    .sort((a, b) => b.unitsSold - a.unitsSold
+      || (b.viewCount || 0) - (a.viewCount || 0)
+      || new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(0, limit);
+  return res.json({ rows: ranked.map(toPublicProduct) });
 };
 
 exports.listAdminProducts = async (req, res) => {

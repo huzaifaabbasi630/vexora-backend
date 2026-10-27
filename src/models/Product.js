@@ -40,6 +40,7 @@ const productSchema = new mongoose.Schema({
   bestseller: { type: Boolean, default: false },
   newArrival: { type: Boolean, default: false },
   categoryFeatured: { type: Boolean, default: false },
+  viewCount: { type: Number, min: 0, default: 0 },
   rating: { type: Number, min: 0, max: 5, default: null },
   reviewCount: { type: Number, min: 0, validate: (value) => value == null || Number.isInteger(value), default: null },
   status: { type: String, enum: ['draft', 'published', 'archived'], default: 'draft', index: true },
