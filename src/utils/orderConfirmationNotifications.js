@@ -2,6 +2,19 @@ const Order = require('../models/Order');
 const { sendEmailConfirmation } = require('./orderConfirmationEmail');
 const { formatPhoneNumber, sendWhatsAppText } = require('./whatsapp');
 
+function getSafeFailure(error, channel) {
+  const providerError = error.response?.data?.error || {};
+  const code = providerError.code || error.code || error.response?.status;
+  const detail = providerError.message || error.message || 'Unknown provider error.';
+  const safeDetail = String(detail)
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[email]')
+    .slice(0, 180);
+  return {
+    code: code ? `${channel}_${code}` : `${channel}_FAILED`,
+    message: safeDetail,
+  };
+}
+
 async function sendOrderConfirmationNotifications(order) {
   const { customerInfo = {}, cartItems = [], total = 0 } = order;
   const name = customerInfo.name || 'Customer';
@@ -14,12 +27,15 @@ async function sendOrderConfirmationNotifications(order) {
   let whatsappSent = Boolean(notifications.customerWhatsAppSentAt);
   let emailFailed = false;
   let whatsappFailed = false;
+  let emailError = null;
+  let whatsappError = null;
 
   await Promise.allSettled([
     (async () => {
       if (emailSent) return;
       if (!email) {
         emailFailed = true;
+        emailError = { code: 'EMAIL_MISSING', message: 'Customer email address is missing.' };
         console.warn(`⚠️ Confirmation email skipped for order #${orderId}: customer email is missing.`);
         return;
       }
@@ -43,9 +59,10 @@ async function sendOrderConfirmationNotifications(order) {
         emailSent = true;
       } catch (error) {
         emailFailed = true;
+        emailError = getSafeFailure(error, 'EMAIL');
         console.error('Order confirmation email failed:', {
-          message: error.message,
-          code: error.code || null,
+          message: emailError.message,
+          code: emailError.code,
           command: error.command || null,
           responseCode: error.responseCode || null,
         });
@@ -55,6 +72,7 @@ async function sendOrderConfirmationNotifications(order) {
       if (whatsappSent) return;
       if (!phone) {
         whatsappFailed = true;
+        whatsappError = { code: 'WHATSAPP_PHONE_MISSING', message: 'Customer phone number is missing.' };
         console.warn(`⚠️ Confirmation WhatsApp skipped for order #${orderId}: customer phone is missing.`);
         return;
       }
@@ -95,12 +113,13 @@ async function sendOrderConfirmationNotifications(order) {
         whatsappSent = true;
       } catch (error) {
         whatsappFailed = true;
-        console.error('Order confirmation WhatsApp failed:', error.response?.data || error.message);
+        whatsappError = getSafeFailure(error, 'WHATSAPP');
+        console.error('Order confirmation WhatsApp failed:', whatsappError);
       }
     })(),
   ]);
 
-  return { emailSent, whatsappSent, emailFailed, whatsappFailed };
+  return { emailSent, whatsappSent, emailFailed, whatsappFailed, emailError, whatsappError };
 }
 
 module.exports = { sendOrderConfirmationNotifications };

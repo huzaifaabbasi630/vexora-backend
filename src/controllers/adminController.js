@@ -823,10 +823,18 @@ const updateAdminOrderStatus = async (req, res) => {
       notificationMessage = 'Order status was saved and customer email and WhatsApp notifications were sent.';
     } else if (sentChannels.length > 0) {
       notification = 'partial';
-      notificationMessage = `Order status was saved; ${sentChannels.join(' and ')} sent. ${failedChannels.join(' and ')} could not be sent.`;
+      const failures = [
+        result.emailFailed && `Email: ${result.emailError?.code || 'failed'}${result.emailError?.message ? ` — ${result.emailError.message}` : ''}`,
+        result.whatsappFailed && `WhatsApp: ${result.whatsappError?.code || 'failed'}${result.whatsappError?.message ? ` — ${result.whatsappError.message}` : ''}`,
+      ].filter(Boolean);
+      notificationMessage = `Order status was saved; ${sentChannels.join(' and ')} sent. ${failures.join('; ') || `${failedChannels.join(' and ')} could not be sent.`}`;
     } else {
       notification = 'failed';
-      notificationMessage = 'Order status was saved, but customer email and WhatsApp notifications could not be sent. Check customer contact details and server logs.';
+      const failures = [
+        result.emailError && `Email: ${result.emailError.code} — ${result.emailError.message}`,
+        result.whatsappError && `WhatsApp: ${result.whatsappError.code} — ${result.whatsappError.message}`,
+      ].filter(Boolean);
+      notificationMessage = `Order status was saved, but notifications failed. ${failures.join('; ') || 'Check customer contact details and server logs.'}`;
     }
   }
   return res.json({ message: 'Order status updated.', notification, notificationMessage, order });
@@ -876,6 +884,10 @@ const sendAdminOrderConfirmation = async (req, res) => {
     result.emailSent && 'email',
     result.whatsappSent && 'WhatsApp',
   ].filter(Boolean);
+  const failures = [
+    result.emailError && `Email: ${result.emailError.code} — ${result.emailError.message}`,
+    result.whatsappError && `WhatsApp: ${result.whatsappError.code} — ${result.whatsappError.message}`,
+  ].filter(Boolean);
   if (sentChannels.length === 2) {
     return res.json({
       message: 'Order confirmation notifications sent.',
@@ -887,12 +899,12 @@ const sendAdminOrderConfirmation = async (req, res) => {
     return res.json({
       message: 'Order confirmation partially sent.',
       notification: 'partial',
-      notificationMessage: `Order confirmation was sent by ${sentChannels[0]}, but the other channel failed. Check server logs and try again.`,
+      notificationMessage: `Order confirmation was sent by ${sentChannels[0]}; ${failures.join('; ') || 'the other channel failed.'}`,
     });
   }
 
   return res.status(502).json({
-    message: 'Order confirmation could not be sent by email or WhatsApp. Check the customer contact details and server configuration.',
+    message: `Order confirmation could not be sent. ${failures.join('; ') || 'Check the customer contact details and server configuration.'}`,
   });
 };
 

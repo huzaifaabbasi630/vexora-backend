@@ -2,6 +2,19 @@ const Order = require('../models/Order');
 const { sendOrderStatusEmail } = require('./orderStatusEmail');
 const { formatPhoneNumber, sendWhatsAppText } = require('./whatsapp');
 
+function getSafeFailure(error, channel) {
+  const providerError = error.response?.data?.error || {};
+  const code = providerError.code || error.code || error.response?.status;
+  const detail = providerError.message || error.message || 'Unknown provider error.';
+  const safeDetail = String(detail)
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[email]')
+    .slice(0, 180);
+  return {
+    code: code ? `${channel}_${code}` : `${channel}_FAILED`,
+    message: safeDetail,
+  };
+}
+
 async function sendOrderStatusNotifications(order, status) {
   const statusKey = status === 'Dispatched' ? 'dispatched' : 'onTheWay';
   const emailSentAtKey = `${statusKey}EmailSentAt`;
@@ -12,6 +25,8 @@ async function sendOrderStatusNotifications(order, status) {
   let whatsappSent = Boolean(order.statusNotifications?.[whatsappSentAtKey]);
   let emailFailed = false;
   let whatsappFailed = false;
+  let emailError = null;
+  let whatsappError = null;
 
   await Promise.allSettled([
     (async () => {
@@ -20,6 +35,8 @@ async function sendOrderStatusNotifications(order, status) {
         return;
       }
       if (!email) {
+        emailFailed = true;
+        emailError = { code: 'EMAIL_MISSING', message: 'Customer email address is missing.' };
         console.warn(`⚠️ No email in customerInfo for order #${order._id} — skipping email.`);
         return;
       }
@@ -43,9 +60,10 @@ async function sendOrderStatusNotifications(order, status) {
         console.log(`✅ "${status}" email accepted by mail provider.`);
       } catch (error) {
         emailFailed = true;
+        emailError = getSafeFailure(error, 'EMAIL');
         console.error('❌ Order status email error:', {
-          message: error.message,
-          code: error.code || null,
+          message: emailError.message,
+          code: emailError.code,
           command: error.command || null,
           responseCode: error.responseCode || null,
         });
@@ -57,6 +75,8 @@ async function sendOrderStatusNotifications(order, status) {
         return;
       }
       if (!phone) {
+        whatsappFailed = true;
+        whatsappError = { code: 'WHATSAPP_PHONE_MISSING', message: 'Customer phone number is missing.' };
         console.warn(`⚠️ No phone in customerInfo for order #${order._id} — skipping WhatsApp.`);
         return;
       }
@@ -99,12 +119,13 @@ async function sendOrderStatusNotifications(order, status) {
         console.log(`✅ "${status}" WhatsApp request accepted for customer ending in ${formattedPhone.slice(-4)}.`);
       } catch (error) {
         whatsappFailed = true;
-        console.error('❌ Order status WhatsApp error:', error.response?.data || error.message);
+        whatsappError = getSafeFailure(error, 'WHATSAPP');
+        console.error('❌ Order status WhatsApp error:', whatsappError);
       }
     })(),
   ]);
 
-  return { emailSent, whatsappSent, emailFailed, whatsappFailed };
+  return { emailSent, whatsappSent, emailFailed, whatsappFailed, emailError, whatsappError };
 }
 
 module.exports = { sendOrderStatusNotifications };
