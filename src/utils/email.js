@@ -7,7 +7,7 @@ const emailPort = [465, 587].includes(configuredEmailPort) ? configuredEmailPort
 const getEmailProvider = () => (
   process.env.EMAIL_PROVIDER
     ? process.env.EMAIL_PROVIDER.trim().toLowerCase()
-    : (process.env.RESEND_API_KEY ? 'resend' : 'smtp')
+    : 'smtp'
 );
 
 const transporter = nodemailer.createTransport({
@@ -78,7 +78,14 @@ async function sendEmail(to, subject, templateName, variables = {}) {
   const provider = getEmailProvider();
   const from = process.env.EMAIL_FROM || process.env.EMAIL_USER;
   if (!from) {
-    throw new Error('Email sender is not configured. Set EMAIL_FROM.');
+    const error = new Error('SMTP sender is not configured. Set EMAIL_FROM or EMAIL_USER.');
+    error.code = 'EMAIL_SMTP_NOT_CONFIGURED';
+    throw error;
+  }
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    const error = new Error('SMTP credentials are not configured. Set EMAIL_USER and EMAIL_PASS.');
+    error.code = 'EMAIL_SMTP_NOT_CONFIGURED';
+    throw error;
   }
 
   if (provider === 'resend') {
