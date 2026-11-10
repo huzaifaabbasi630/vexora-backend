@@ -4,11 +4,7 @@ const path = require('path');
 
 const configuredEmailPort = Number.parseInt(process.env.EMAIL_PORT, 10);
 const emailPort = [465, 587].includes(configuredEmailPort) ? configuredEmailPort : 587;
-const getEmailProvider = () => (
-  process.env.EMAIL_PROVIDER
-    ? process.env.EMAIL_PROVIDER.trim().toLowerCase()
-    : 'smtp'
-);
+const getEmailProvider = () => 'smtp';
 
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST || 'smtp.gmail.com',
@@ -33,7 +29,6 @@ function getEmailConfigStatus() {
   const provider = getEmailProvider();
   return {
     provider,
-    resendApiKeyConfigured: Boolean(process.env.RESEND_API_KEY),
     senderConfigured: Boolean(process.env.EMAIL_FROM || process.env.EMAIL_USER),
     hostConfigured: Boolean(process.env.EMAIL_HOST),
     portConfigured: Boolean(process.env.EMAIL_PORT),
