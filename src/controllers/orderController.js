@@ -3,14 +3,13 @@ const mongoose = require('mongoose');
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const { sendEmail } = require('../utils/email');
-const { sendOrderStatusEmail } = require('../utils/orderStatusEmail');
+const { sendOrderStatusNotifications } = require('../utils/orderStatusNotifications');
+const { confirmPendingOrder } = require('../utils/confirmPendingOrder');
 const {
-  formatPhoneNumber,
   sendCustomerConfirmationMessage,
   sendCustomerOrderConfirmedMessage,
   sendOrderInteractiveMessage,
   sendOwnerTemplateMessage,
-  sendWhatsAppText,
 } = require('../utils/whatsapp');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -226,8 +225,6 @@ exports.checkout = async (req, res) => {
 // ─── GET /api/orders/confirm/:orderId ─────────────────────────────────────────
 
 exports.confirmOrder = async (req, res) => {
-  let claimedOrder;
-  const decremented = [];
   try {
     const { orderId } = req.params;
     console.log('🔔 Order confirmation link requested:', orderId);
@@ -254,50 +251,8 @@ exports.confirmOrder = async (req, res) => {
       `);
     }
 
-    claimedOrder = await Order.findOneAndUpdate(
-      { _id: order._id, status: 'Pending Confirmation' },
-      { $set: { status: 'Confirming' } },
-      { new: true }
-    );
-    if (!claimedOrder) {
-      console.warn('⚠️ Order confirmation claim failed; another request may be processing it:', orderId);
-      return res.status(409).send('<h2>This order confirmation link has already been used.</h2>');
-    }
-    console.log('🔒 Order confirmation claimed; checking inventory:', orderId);
-
-    for (const item of claimedOrder.cartItems) {
-      if (!item.productId) continue;
-      const product = await Product.findById(item.productId).lean();
-      if (!product || product.status !== 'published') throw new Error(`Product is no longer available: ${item.name}.`);
-      if (!product.trackInventory) continue;
-      const variantExists = product.variants.some((variant) =>
-        variant.size === item.selectedSize && variant.color === item.selectedColor
-      );
-      const filter = { _id: product._id, status: 'published' };
-      const update = { $inc: {} };
-      if (variantExists) {
-        filter.variants = { $elemMatch: { size: item.selectedSize, color: item.selectedColor, stock: { $gte: item.qty } } };
-        update.$inc['variants.$.stock'] = -item.qty;
-      } else {
-        filter.stock = { $gte: item.qty };
-        update.$inc.stock = -item.qty;
-      }
-      const updatedProduct = await Product.findOneAndUpdate(filter, update, { new: true });
-      if (!updatedProduct) throw new Error(`Insufficient stock to confirm ${item.name}.`);
-      decremented.push({
-        productId: product._id,
-        qty: item.qty,
-        variantExists,
-        size: item.selectedSize,
-        color: item.selectedColor,
-      });
-    }
-
-    claimedOrder.status = 'Confirmed';
-    claimedOrder.confirmedAt = new Date();
-    claimedOrder.expiresAt = daysFromNow(30);
-    await claimedOrder.save();
-    const confirmedOrder = claimedOrder;
+    const confirmedOrder = await confirmPendingOrder(order);
+    console.log('🔒 Order confirmation claimed and inventory checked:', orderId);
 
     console.log('✅ Order confirmed:', confirmedOrder._id);
 
@@ -345,29 +300,10 @@ exports.confirmOrder = async (req, res) => {
     }));
 
   } catch (error) {
-    const rollbackResults = await Promise.allSettled(decremented.map((item) => {
-      const filter = item.variantExists
-        ? { _id: item.productId, variants: { $elemMatch: { size: item.size, color: item.color } } }
-        : { _id: item.productId };
-      const update = item.variantExists
-        ? { $inc: { 'variants.$.stock': item.qty } }
-        : { $inc: { stock: item.qty } };
-      return Product.updateOne(filter, update);
-    }));
-    rollbackResults.forEach((result) => {
-      if (result.status === 'rejected') console.error('Stock rollback failed during order confirmation:', result.reason?.message || 'Unknown database error.');
-    });
-    if (claimedOrder) {
-      try {
-        await Order.updateOne(
-          { _id: claimedOrder._id, status: 'Confirming' },
-          { $set: { status: 'Pending Confirmation' } }
-        );
-      } catch (resetError) {
-        console.error('Order confirmation state rollback failed:', resetError.message);
-      }
+    if (error.code === 'ORDER_CONFIRMATION_CONFLICT') {
+      return res.status(409).send('<h2>This order confirmation link has already been used or is being processed.</h2>');
     }
-    if (error.message?.startsWith('Insufficient stock')) {
+    if (['ORDER_INSUFFICIENT_STOCK', 'ORDER_PRODUCT_UNAVAILABLE'].includes(error.code)) {
       return res.status(409).send(`<h2>Order cannot be confirmed</h2><p>${escapeHtml(error.message)}</p><p>Please contact customer support for assistance.</p>`);
     }
     console.error('DETAILED CONFIRM ERROR:', error);
@@ -405,9 +341,6 @@ exports.updateOrderStatus = async (req, res) => {
     }
 
     const sameStatus = order.status === validStatus;
-    const statusKey = validStatus === 'Dispatched' ? 'dispatched' : 'onTheWay';
-    const emailSentAtKey = `${statusKey}EmailSentAt`;
-    const whatsappSentAtKey = `${statusKey}WhatsAppSentAt`;
 
     if (sameStatus) {
       console.log(`🔁 Retrying any undelivered "${validStatus}" notifications for order #${orderId}.`);
@@ -417,89 +350,7 @@ exports.updateOrderStatus = async (req, res) => {
       console.log(`✅ Order #${orderId} status updated: "${validStatus}"`);
     }
 
-    const { email, phone, name } = order.customerInfo || {};
-    let emailSent = Boolean(order.statusNotifications?.[emailSentAtKey]);
-    let whatsappSent = Boolean(order.statusNotifications?.[whatsappSentAtKey]);
-
-    // ── SIMULTANEOUS NOTIFICATIONS: Email + WhatsApp ──
-    await Promise.allSettled([
-      // Send email to customer
-      (async () => {
-        if (emailSent) {
-          console.log(`ℹ️ "${validStatus}" email already sent for order #${orderId}; skipping.`);
-          return;
-        }
-        if (!email) {
-          console.warn(`⚠️  No email in customerInfo for order #${orderId} — skipping email.`);
-          return;
-        }
-        console.log(`📧 Sending "${validStatus}" email using the matching status template.`);
-        try {
-          const result = await sendOrderStatusEmail(order, validStatus);
-          const accepted = result.accepted?.some((recipient) =>
-            String(recipient).toLowerCase() === email.toLowerCase()
-          );
-          const rejected = result.rejected?.some((recipient) =>
-            String(recipient).toLowerCase() === email.toLowerCase()
-          );
-          if (rejected || !accepted) {
-            throw new Error(`Mail provider did not accept the ${validStatus} email recipient.`);
-          }
-          await Order.updateOne(
-            { _id: order._id },
-            { $set: { [`statusNotifications.${emailSentAtKey}`]: new Date() } }
-          );
-          emailSent = true;
-          console.log(`✅ "${validStatus}" email accepted by mail provider.`);
-        } catch (mailErr) {
-          console.error('❌ Email error:', {
-            message: mailErr.message,
-            code: mailErr.code || null,
-            command: mailErr.command || null,
-            responseCode: mailErr.responseCode || null,
-          });
-        }
-      })(),
-
-      // Send WhatsApp message to customer
-      (async () => {
-        if (whatsappSent) {
-          console.log(`ℹ️ "${validStatus}" WhatsApp already sent for order #${orderId}; skipping.`);
-          return;
-        }
-        if (!phone) {
-          console.warn(`⚠️  No phone in customerInfo for order #${orderId} — skipping WhatsApp.`);
-          return;
-        }
-        try {
-          const formattedPhone = formatPhoneNumber(phone);
-          const orderShortId = String(order._id).slice(-6);
-          const customerName = name || 'Customer';
-          
-          const statusMessage = [
-            `🚚 *Order Update!*`,
-            '',
-            `Dear ${customerName}, aapka order #${orderShortId} status update ho kar *${validStatus}* ho gaya hai.`,
-            '',
-            validStatus === 'Dispatched' 
-              ? 'Aapka order dispatch ho gaya hai. Tracking details share ki jayegi.' 
-              : 'Aapka order ab delivery ke raaste par hai. Jald hi pahunch jayega!',
-            '',
-            'Agar koi sawal ho to WhatsApp karein.',
-          ].join('\n');
-          
-          await sendWhatsAppText(formattedPhone, statusMessage);
-          await Order.updateOne(
-            { _id: order._id },
-            { $set: { [`statusNotifications.${whatsappSentAtKey}`]: new Date() } }
-          );
-          whatsappSent = true;
-          console.log(`✅ "${validStatus}" WhatsApp request accepted for customer ending in ${formattedPhone.slice(-4)}.`);
-        } catch (waErr) {
-          console.error('❌ WhatsApp error:', waErr.response?.data || waErr.message);
-        }
-      })(),
-    ]);
+    const { emailSent, whatsappSent } = await sendOrderStatusNotifications(order, validStatus);
 
     const notificationNotice = [];
     if (emailSent) notificationNotice.push('email');

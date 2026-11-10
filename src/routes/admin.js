@@ -16,6 +16,7 @@ const {
   anonymizeCustomer,
   deleteAdminCustomer,
   updateAdminOrderStatus,
+  sendAdminOrderConfirmation,
   deleteAdminOrder,
   getAdminMessages,
   updateAdminMessageStatus,
@@ -62,6 +63,7 @@ router.patch('/customers/:customerId/status', requireAuth, requireOwner, asyncHa
 router.delete('/customers/:customerId/anonymize', requireAuth, requireOwner, asyncHandler(anonymizeCustomer));
 router.delete('/customers/:customerId', requireAuth, requireOwner, asyncHandler(deleteAdminCustomer));
 router.get('/orders', requireAuth, requireOwner, asyncHandler(getAdminOrders));
+router.post('/orders/:orderId/confirmation-email', requireAuth, requireOwner, asyncHandler(sendAdminOrderConfirmation));
 router.patch('/orders/:orderId/status', requireAuth, requireOwner, asyncHandler(updateAdminOrderStatus));
 router.delete('/orders/:orderId', requireAuth, requireOwner, asyncHandler(deleteAdminOrder));
 router.get('/messages', requireAuth, requireOwner, asyncHandler(getAdminMessages));

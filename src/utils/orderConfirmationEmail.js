@@ -113,7 +113,7 @@ async function sendEmailConfirmation(order) {
               </p>
 
               <p style="margin:0;color:#6D6259;font-size:14px;line-height:24px;">
-                Your order has been successfully confirmed via WhatsApp. We're now processing your order and will keep you updated on its progress.
+                Your order has been successfully confirmed. We're now processing your order and will keep you updated on its progress.
               </p>
             </td>
           </tr>

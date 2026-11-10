@@ -10,6 +10,9 @@ const ContactMessage = require('../models/ContactMessage');
 const CmsPage = require('../models/CmsPage');
 const Product = require('../models/Product');
 const { sendEmail } = require('../utils/email');
+const { sendOrderStatusNotifications } = require('../utils/orderStatusNotifications');
+const { sendOrderConfirmationNotifications } = require('../utils/orderConfirmationNotifications');
+const { confirmPendingOrder } = require('../utils/confirmPendingOrder');
 
 const OWNER_EMAIL = (process.env.OWNER_EMAIL || 'vexora055@gmail.com').trim().toLowerCase();
 const OTP_WINDOW_MS = 5 * 60 * 1000;
@@ -765,9 +768,10 @@ const getAdminOrders = async (req, res) => {
 const updateAdminOrderStatus = async (req, res) => {
   const { status } = req.body || {};
   const transitions = {
-    Confirmed: ['Dispatched'],
-    Dispatched: ['On The Way'],
-    'On The Way': ['Delivered'],
+    'Pending Confirmation': ['Dispatched', 'On The Way'],
+    Confirmed: ['Dispatched', 'On The Way'],
+    Dispatched: ['Dispatched', 'On The Way'],
+    'On The Way': ['On The Way', 'Delivered'],
   };
   if (!/^[a-f\d]{24}$/i.test(req.params.orderId)) return res.status(400).json({ message: 'Invalid order ID.' });
   if (!Object.keys(transitions).some((key) => transitions[key].includes(status))) {
@@ -780,6 +784,19 @@ const updateAdminOrderStatus = async (req, res) => {
     return res.status(409).json({ message: `Cannot move an order from ${order.status} to ${status}.` });
   }
   const previousStatus = order.status;
+  if (previousStatus === 'Pending Confirmation') {
+    try {
+      await confirmPendingOrder(order);
+    } catch (error) {
+      if (error.code === 'ORDER_CONFIRMATION_CONFLICT') {
+        return res.status(409).json({ message: error.message });
+      }
+      if (['ORDER_INSUFFICIENT_STOCK', 'ORDER_PRODUCT_UNAVAILABLE'].includes(error.code)) {
+        return res.status(409).json({ message: error.message });
+      }
+      throw error;
+    }
+  }
   order.status = status;
   await order.save();
   await logAuditAction(req.owner, 'order_status_updated', {
@@ -789,22 +806,94 @@ const updateAdminOrderStatus = async (req, res) => {
   }, req);
 
   let notification = 'not sent';
-  if (['Dispatched', 'On The Way'].includes(status) && order.customerInfo?.email) {
-    try {
-      const { sendOrderStatusEmail } = require('../utils/orderStatusEmail');
-      await sendOrderStatusEmail(order, status);
+  let notificationMessage = 'Order status was saved. No customer notification was sent.';
+  if (['Dispatched', 'On The Way'].includes(status)) {
+    const result = await sendOrderStatusNotifications(order, status);
+    const sentChannels = [
+      result.emailSent && 'email',
+      result.whatsappSent && 'WhatsApp',
+    ].filter(Boolean);
+    const failedChannels = [
+      (!result.emailSent && (result.emailFailed || !order.customerInfo?.email)) && 'email',
+      (!result.whatsappSent && (result.whatsappFailed || !order.customerInfo?.phone)) && 'WhatsApp',
+    ].filter(Boolean);
+
+    if (sentChannels.length === 2) {
       notification = 'sent';
-    } catch (error) {
-      console.error(`Order status email failed (${error.code || 'EMAIL_ERROR'}).`);
+      notificationMessage = 'Order status was saved and customer email and WhatsApp notifications were sent.';
+    } else if (sentChannels.length > 0) {
+      notification = 'partial';
+      notificationMessage = `Order status was saved; ${sentChannels.join(' and ')} sent. ${failedChannels.join(' and ')} could not be sent.`;
+    } else {
       notification = 'failed';
+      notificationMessage = 'Order status was saved, but customer email and WhatsApp notifications could not be sent. Check customer contact details and server logs.';
     }
   }
-  const notificationMessage = notification === 'failed'
-    ? 'Order status was saved, but the customer email could not be sent.'
-    : notification === 'not sent'
-      ? 'Order status was saved. No customer notification was sent.'
-      : 'Order status was saved and the customer email was sent.';
   return res.json({ message: 'Order status updated.', notification, notificationMessage, order });
+};
+
+const sendAdminOrderConfirmation = async (req, res) => {
+  if (!/^[a-f\d]{24}$/i.test(req.params.orderId)) {
+    return res.status(400).json({ message: 'Invalid order ID.' });
+  }
+
+  const order = await Order.findById(req.params.orderId);
+  if (!order) return res.status(404).json({ message: 'Order not found.' });
+  if (order.status === 'Pending Confirmation') {
+    try {
+      await confirmPendingOrder(order);
+    } catch (error) {
+      if (error.code === 'ORDER_CONFIRMATION_CONFLICT') {
+        return res.status(409).json({ message: error.message });
+      }
+      if (['ORDER_INSUFFICIENT_STOCK', 'ORDER_PRODUCT_UNAVAILABLE'].includes(error.code)) {
+        return res.status(409).json({ message: error.message });
+      }
+      throw error;
+    }
+    await logAuditAction(req.owner, 'order_status_updated', {
+      targetType: 'order',
+      targetId: String(order._id),
+      payload: { from: 'Pending Confirmation', to: 'Confirmed' },
+    }, req);
+  } else if (!['Confirmed', 'Dispatched', 'On The Way', 'Delivered'].includes(order.status)) {
+    return res.status(409).json({ message: `Cannot send an order confirmation email for an order with status ${order.status}.` });
+  }
+
+  const result = await sendOrderConfirmationNotifications(order);
+  if (result.emailSent || result.whatsappSent) {
+    await logAuditAction(req.owner, 'order_confirmation_notification_sent', {
+      targetType: 'order',
+      targetId: String(order._id),
+      payload: {
+        emailSent: result.emailSent,
+        whatsappSent: result.whatsappSent,
+      },
+    }, req);
+  }
+
+  const sentChannels = [
+    result.emailSent && 'email',
+    result.whatsappSent && 'WhatsApp',
+  ].filter(Boolean);
+  if (sentChannels.length === 2) {
+    return res.json({
+      message: 'Order confirmation notifications sent.',
+      notification: 'sent',
+      notificationMessage: 'Order confirmation with full details was sent to the customer by email and WhatsApp.',
+    });
+  }
+  if (sentChannels.length === 1) {
+    return res.json({
+      message: 'Order confirmation partially sent.',
+      notification: 'partial',
+      notificationMessage: `Order confirmation was sent by ${sentChannels[0]}, but the other channel failed. Check server logs and try again.`,
+    });
+  }
+
+  return res.status(502).json({
+    message: 'Order confirmation could not be sent by email or WhatsApp. Check the customer contact details and server configuration.',
+  });
 };
 
 const deleteAdminOrder = async (req, res) => {
@@ -1021,6 +1110,7 @@ module.exports = {
   anonymizeCustomer,
   deleteAdminCustomer,
   updateAdminOrderStatus,
+  sendAdminOrderConfirmation,
   deleteAdminOrder,
   getAdminMessages,
   updateAdminMessageStatus,
