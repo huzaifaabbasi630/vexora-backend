@@ -1,0 +1,680 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light" />
+  <meta name="supported-color-schemes" content="light" />
+
+  <title>Welcome to VEXORA</title>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #F3EFE9;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #1A1512;
+    }
+
+    table {
+      border-collapse: collapse;
+    }
+
+    img {
+      border: 0;
+      display: block;
+      max-width: 100%;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    .email-wrapper {
+      width: 100%;
+      background-color: #F3EFE9;
+    }
+
+    .email-container {
+      width: 100%;
+      max-width: 600px;
+      background-color: #FFFFFF;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .hero-title {
+      font-family: Georgia, "Times New Roman", serif;
+      font-weight: normal;
+      font-size: 34px;
+      line-height: 1.3;
+      color: #1A1512;
+    }
+
+    .section-title {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 24px;
+      line-height: 1.4;
+      font-weight: normal;
+      color: #1A1512;
+    }
+
+    .primary-button {
+      display: inline-block;
+      background-color: #1A1512;
+      color: #F3EFE9 !important;
+      text-decoration: none;
+      font-size: 12px;
+      line-height: 1.4;
+      font-weight: bold;
+      letter-spacing: 1.5px;
+      padding: 16px 28px;
+      border-radius: 4px;
+    }
+
+    .secondary-button {
+      display: inline-block;
+      background-color: #F3EFE9;
+      color: #1A1512 !important;
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      padding: 13px 22px;
+      border: 1px solid #1A1512;
+      border-radius: 4px;
+    }
+
+    .body-copy {
+      font-size: 14px;
+      line-height: 1.9;
+      color: #665B51;
+    }
+
+    .small-label {
+      font-size: 10px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      color: #817367;
+    }
+
+    .category-link {
+      display: block;
+      background-color: #F3EFE9;
+      color: #1A1512 !important;
+      text-align: center;
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: bold;
+      padding: 17px 5px;
+      border-radius: 5px;
+    }
+
+    .footer-link {
+      color: #F3EFE9 !important;
+      text-decoration: underline;
+      font-size: 11px;
+      line-height: 2;
+    }
+
+    @media screen and (max-width: 480px) {
+      .outer-padding {
+        padding: 12px 8px !important;
+      }
+
+      .content-padding {
+        padding-left: 20px !important;
+        padding-right: 20px !important;
+      }
+
+      .hero-title {
+        font-size: 28px !important;
+      }
+
+      .section-title {
+        font-size: 21px !important;
+      }
+
+      .brand-logo {
+        font-size: 26px !important;
+        letter-spacing: 6px !important;
+      }
+
+      .primary-button {
+        padding: 15px 20px !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Hidden preview text shown in supported email inboxes -->
+  <div style="
+    display:none;
+    font-size:1px;
+    color:#F3EFE9;
+    line-height:1px;
+    max-height:0;
+    max-width:0;
+    opacity:0;
+    overflow:hidden;
+  ">
+    Welcome to VEXORA, {{name}}. Discover your style and explore our collection.
+  </div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+    border="0" class="email-wrapper">
+    <tr>
+      <td align="center" class="outer-padding" style="padding:28px 12px;">
+
+        <!-- MAIN EMAIL -->
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0"
+          border="0" class="email-container"
+          style="max-width:600px;width:100%;">
+
+          <!-- 1. BRAND HEADER -->
+          <tr>
+            <td align="center"
+              style="background-color:#1A1512;padding:35px 20px 30px;">
+
+              <a href="{{storeUrl}}"
+                style="text-decoration:none;color:#F3EFE9;">
+
+                <div class="brand-logo" style="
+                  font-family:Georgia,'Times New Roman',serif;
+                  font-size:30px;
+                  font-weight:bold;
+                  letter-spacing:8px;
+                  color:#F3EFE9;
+                ">
+                  VEXORA
+                </div>
+
+              </a>
+
+              <p style="
+                margin:12px 0 0;
+                font-size:10px;
+                letter-spacing:3px;
+                color:#C7BCAF;
+                line-height:1.7;
+              ">
+                MODERN STYLE. TIMELESS CONFIDENCE.
+              </p>
+
+              <div style="
+                height:2px;
+                width:42px;
+                background-color:#F3EFE9;
+                margin:20px auto 0;
+                font-size:0;
+                line-height:0;
+              ">
+                &nbsp;
+              </div>
+
+            </td>
+          </tr>
+
+          <!-- 2. WELCOME MESSAGE -->
+          <tr>
+            <td class="content-padding" style="padding:38px 32px 18px;">
+
+              <p class="small-label" style="margin:0 0 15px;">
+                YOU'RE PART OF SOMETHING DIFFERENT
+              </p>
+
+              <h1 class="hero-title" style="margin:0 0 18px;">
+                Welcome to<br />
+                VEXORA, {{name}}.
+              </h1>
+
+              <p class="body-copy" style="margin:0 0 14px;">
+                We're glad you're here.
+              </p>
+
+              <p class="body-copy" style="margin:0;">
+                Thank you for joining VEXORA — a destination for
+                thoughtfully selected styles and a modern approach to
+                everyday fashion.
+              </p>
+
+            </td>
+          </tr>
+
+          <!-- 3. MAIN SHOP CTA -->
+          <tr>
+            <td align="center" class="content-padding"
+              style="padding:20px 32px 35px;">
+
+              <table role="presentation" cellpadding="0" cellspacing="0"
+                border="0">
+                <tr>
+                  <td align="center" bgcolor="#1A1512"
+                    style="background-color:#1A1512;border-radius:4px;">
+
+                    <a href="{{shopUrl}}" target="_blank"
+                      class="primary-button">
+                      EXPLORE THE COLLECTION &rarr;
+                    </a>
+
+                  </td>
+                </tr>
+              </table>
+
+              <p style="
+                margin:16px 0 0;
+                font-size:11px;
+                line-height:1.8;
+                color:#817367;
+              ">
+                Your next favourite look might be just a click away.
+              </p>
+
+            </td>
+          </tr>
+
+          <!-- 4. OPTIONAL WELCOME OFFER -->
+          <!--
+            Show this section only when a real, valid welcome coupon exists.
+            Remove the whole row if there is no offer.
+          -->
+          <tr>
+            <td class="content-padding" style="padding:0 32px 30px;">
+
+              <table role="presentation" width="100%" cellpadding="0"
+                cellspacing="0" border="0"
+                style="background-color:#F3EFE9;border-radius:7px;">
+
+              
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- 5. EXPLORE CATEGORIES -->
+          <tr>
+            <td class="content-padding" style="padding:8px 32px 32px;">
+
+              <p class="small-label" style="margin:0 0 12px;">
+                FIND YOUR STYLE
+              </p>
+
+              <h2 class="section-title" style="margin:0 0 12px;">
+                Explore our collections.
+              </h2>
+
+              <p class="body-copy" style="margin:0 0 22px;">
+                Browse your favourite categories and discover pieces
+                that fit your personal style.
+              </p>
+
+              <!-- Update these category URLs to match your actual store. -->
+              <table role="presentation" width="100%" cellpadding="0"
+                cellspacing="0" border="0">
+                <tr>
+                  <td width="33.33%" style="padding:0 5px 0 0;">
+                    <a href="{{menCategoryUrl}}" class="category-link">
+                      MEN &rarr;
+                    </a>
+                  </td>
+
+                  <td width="33.33%" style="padding:0 3px;">
+                    <a href="{{womenCategoryUrl}}" class="category-link">
+                      WOMEN &rarr;
+                    </a>
+                  </td>
+
+                  <td width="33.33%" style="padding:0 0 0 5px;">
+                    <a href="{{newArrivalsUrl}}" class="category-link">
+                      NEW IN &rarr;
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- 6. WHY VEXORA -->
+          <tr>
+            <td style="background-color:#F3EFE9;padding:32px 25px;">
+
+              <div class="content-padding" style="padding:0 7px;">
+
+                <p class="small-label" style="margin:0 0 12px;">
+                  THE VEXORA EXPERIENCE
+                </p>
+
+                <h2 class="section-title" style="margin:0 0 25px;">
+                  More than just shopping.
+                </h2>
+
+              </div>
+
+              <table role="presentation" width="100%" cellpadding="0"
+                cellspacing="0" border="0">
+
+                <tr>
+                  <td width="45" valign="top" style="padding:0 12px 22px 5px;">
+                    <div style="
+                      width:34px;
+                      height:34px;
+                      line-height:34px;
+                      text-align:center;
+                      background-color:#1A1512;
+                      border-radius:50%;
+                      color:#F3EFE9;
+                      font-size:15px;
+                    ">
+                      &#10003;
+                    </div>
+                  </td>
+
+                  <td valign="top" style="padding:0 0 22px;">
+                    <p style="
+                      margin:0 0 6px;
+                      font-size:14px;
+                      font-weight:bold;
+                      color:#1A1512;
+                    ">
+                      Thoughtfully Selected Styles
+                    </p>
+
+                    <p style="
+                      margin:0;
+                      font-size:12px;
+                      line-height:1.8;
+                      color:#665B51;
+                    ">
+                      Discover fashion selected to complement your
+                      individual style.
+                    </p>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td width="45" valign="top" style="padding:0 12px 22px 5px;">
+                    <div style="
+                      width:34px;
+                      height:34px;
+                      line-height:34px;
+                      text-align:center;
+                      background-color:#1A1512;
+                      border-radius:50%;
+                      color:#F3EFE9;
+                      font-size:15px;
+                    ">
+                      &#128274;
+                    </div>
+                  </td>
+
+                  <td valign="top" style="padding:0 0 22px;">
+                    <p style="
+                      margin:0 0 6px;
+                      font-size:14px;
+                      font-weight:bold;
+                      color:#1A1512;
+                    ">
+                      Secure Shopping
+                    </p>
+
+                    <p style="
+                      margin:0;
+                      font-size:12px;
+                      line-height:1.8;
+                      color:#665B51;
+                    ">
+                      Shop confidently with our available secure
+                      checkout options.
+                    </p>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td width="45" valign="top" style="padding:0 12px 0 5px;">
+                    <div style="
+                      width:34px;
+                      height:34px;
+                      line-height:34px;
+                      text-align:center;
+                      background-color:#1A1512;
+                      border-radius:50%;
+                      color:#F3EFE9;
+                      font-size:15px;
+                    ">
+                      &#9993;
+                    </div>
+                  </td>
+
+                  <td valign="top">
+                    <p style="
+                      margin:0 0 6px;
+                      font-size:14px;
+                      font-weight:bold;
+                      color:#1A1512;
+                    ">
+                      Here When You Need Us
+                    </p>
+
+                    <p style="
+                      margin:0;
+                      font-size:12px;
+                      line-height:1.8;
+                      color:#665B51;
+                    ">
+                      Have a question? Visit our support page for
+                      assistance with your shopping experience.
+                    </p>
+                  </td>
+                </tr>
+
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- 7. ACCOUNT DASHBOARD -->
+          <tr>
+            <td align="center" class="content-padding"
+              style="padding:35px 32px;">
+
+              <p class="small-label" style="margin:0 0 12px;">
+                YOUR ACCOUNT, YOUR WAY
+              </p>
+
+              <h2 class="section-title" style="margin:0 0 14px;">
+                Make yourself at home.
+              </h2>
+
+              <p class="body-copy" style="margin:0 0 22px;">
+                Visit your account to manage your profile, review your
+                orders and keep your details up to date.
+              </p>
+
+              <table role="presentation" cellpadding="0" cellspacing="0"
+                border="0">
+                <tr>
+                  <td align="center" style="border:1px solid #1A1512;border-radius:4px;">
+                    <a href="{{accountUrl}}" target="_blank"
+                      class="secondary-button">
+                      GO TO MY ACCOUNT
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Optional profile completion link -->
+              <p style="
+                margin:20px 0 0;
+                font-size:12px;
+                line-height:1.8;
+                color:#817367;
+              ">
+                Want to update your details?
+                <a href="{{profileUrl}}"
+                  style="color:#1A1512;text-decoration:underline;">
+                  Complete your profile
+                </a>
+              </p>
+
+            </td>
+          </tr>
+
+          <!-- 8. CUSTOMER SUPPORT -->
+          <tr>
+            <td style="padding:0 25px 30px;">
+
+              <table role="presentation" width="100%" cellpadding="0"
+                cellspacing="0" border="0"
+                style="border:1px solid #E5DCD2;border-radius:6px;">
+
+                <tr>
+                  <td align="center" style="padding:24px 18px;">
+
+                    <h2 style="
+                      margin:0 0 10px;
+                      font-family:Georgia,'Times New Roman',serif;
+                      font-size:21px;
+                      font-weight:normal;
+                      color:#1A1512;
+                    ">
+                      Need a hand?
+                    </h2>
+
+                    <p style="
+                      margin:0 0 17px;
+                      font-size:12px;
+                      line-height:1.8;
+                      color:#665B51;
+                    ">
+                      Our support team is here to help with your questions.
+                    </p>
+
+                    <a href="{{supportUrl}}" class="secondary-button">
+                      CONTACT SUPPORT
+                    </a>
+
+                    <p style="
+                      margin:16px 0 0;
+                      font-size:11px;
+                      line-height:1.7;
+                      color:#817367;
+                    ">
+                      Or email us at
+                      <a href="mailto:{{supportEmail}}"
+                        style="color:#1A1512;text-decoration:underline;">
+                        {{supportEmail}}
+                      </a>
+                    </p>
+
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- 9. PREMIUM FOOTER -->
+          <tr>
+            <td style="background-color:#1A1512;padding:30px 22px;">
+
+              <p style="
+                margin:0 0 10px;
+                font-family:Georgia,'Times New Roman',serif;
+                font-size:23px;
+                letter-spacing:5px;
+                text-align:center;
+                color:#F3EFE9;
+              ">
+                VEXORA
+              </p>
+
+              <p style="
+                margin:0 0 22px;
+                font-size:10px;
+                letter-spacing:2px;
+                line-height:1.8;
+                text-align:center;
+                color:#C7BCAF;
+              ">
+                MODERN STYLE. TIMELESS CONFIDENCE.
+              </p>
+
+              <div style="height:1px;background-color:#494039;font-size:0;line-height:0;">
+                &nbsp;
+              </div>
+
+              <p style="
+                margin:22px 0 12px;
+                text-align:center;
+                font-size:11px;
+                line-height:2.2;
+              ">
+                <a href="{{storeUrl}}" class="footer-link">Visit Store</a>
+                &nbsp;&nbsp;|&nbsp;&nbsp;
+                <a href="{{supportUrl}}" class="footer-link">Contact Us</a>
+                &nbsp;&nbsp;|&nbsp;&nbsp;
+                <a href="{{returnPolicyUrl}}" class="footer-link">Returns</a>
+              </p>
+
+              <p style="
+                margin:0 0 14px;
+                text-align:center;
+                font-size:11px;
+                line-height:2;
+              ">
+                <a href="{{privacyPolicyUrl}}" class="footer-link">
+                  Privacy Policy
+                </a>
+
+                &nbsp;&nbsp;|&nbsp;&nbsp;
+
+                <a href="{{termsUrl}}" class="footer-link">
+                  Terms &amp; Conditions
+                </a>
+              </p>
+
+              <p style="
+                margin:0 0 18px;
+                text-align:center;
+                font-size:11px;
+                line-height:1.8;
+                color:#C7BCAF;
+              ">
+                Follow our journey:
+                <a href="{{instagramUrl}}"
+                  style="color:#F3EFE9;text-decoration:underline;">
+                  Instagram
+                </a>
+              </p>
+
+              <p style="
+                margin:0;
+                text-align:center;
+                font-size:10px;
+                line-height:1.9;
+                color:#A99B8F;
+              ">
+                &copy; {{year}} VEXORA. All rights reserved.
+                <br />
+                You're receiving this email because you created
+                a VEXORA account.
+              </p>
+
+            </td>
+          </tr>
+
+        </table>
+        <!-- END MAIN EMAIL -->
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>
+```

@@ -1,0 +1,391 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="x-apple-disable-message-reformatting" />
+  <title>Your VEXORA Order Is On The Way</title>
+</head>
+
+<body style="margin:0; padding:0; background-color:#F3EFE9; font-family:Arial, Helvetica, sans-serif; color:#1A1512;">
+
+  <!-- Preheader: hidden preview text -->
+  <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
+    Your VEXORA order is on its way. Check your delivery details and estimated arrival time.
+  </div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F3EFE9;">
+    <tr>
+      <td align="center" style="padding:30px 12px;">
+
+        <!-- Main Email Container -->
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"
+          style="width:100%; max-width:600px; background-color:#FFFFFF; border:1px solid #E5DED5;">
+
+          <!-- Brand Header -->
+          <tr>
+            <td align="center" style="background-color:#1A1512; padding:32px 20px 28px;">
+              <p style="margin:0; color:#F3EFE9; font-size:30px; line-height:36px; font-weight:800; letter-spacing:6px;">
+                VEXORA
+              </p>
+
+              <p style="margin:10px 0 0; color:#C9BDB0; font-size:10px; line-height:16px; letter-spacing:3px;">
+                STREETWEAR. MODEST LUXURY.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Delivery Status -->
+          <tr>
+            <td align="center" style="padding:34px 24px 12px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="center" style="background-color:#E8E2D9; padding:9px 18px;">
+                    <span style="font-size:11px; font-weight:bold; letter-spacing:2px; color:#1A1512;">
+                      YOUR ORDER IS ON THE WAY
+                    </span>
+                  </td>
+                </tr>
+              </table>
+
+              <h1 style="margin:22px 0 10px; color:#1A1512; font-size:30px; line-height:38px; font-weight:700;">
+                It's Almost Yours.
+              </h1>
+
+              <p style="margin:0 auto; max-width:440px; color:#6D6259; font-size:15px; line-height:25px;">
+                Hey {{name}}, your VEXORA order has been dispatched and is heading your way.
+                Get ready to make your next statement.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Estimated Delivery Card -->
+          <!-- <tr>
+            <td style="padding:24px 24px 8px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                style="background-color:#F3EFE9; border:1px solid #E5DED5;">
+                <tr>
+                  <td align="center" style="padding:22px 16px;">
+                    <p style="margin:0 0 8px; color:#75685D; font-size:11px; letter-spacing:2px; font-weight:bold;">
+                      ESTIMATED DELIVERY
+                    </p>
+
+                    <p style="margin:0; color:#1A1512; font-size:25px; line-height:32px; font-weight:bold;">
+                      {{estimatedTime}}
+                    </p>
+
+                    <p style="margin:8px 0 0; color:#75685D; font-size:12px; line-height:19px;">
+                      This is an estimate and may change depending on delivery conditions.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr> -->
+
+          <!-- Delivery Progress Tracker -->
+          <tr>
+            <td style="padding:28px 24px 24px;">
+              <h2 style="margin:0 0 24px; color:#1A1512; font-size:18px; line-height:24px; text-align:center;">
+                Delivery Progress
+              </h2>
+
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="center" width="25%" valign="top">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td align="center" width="30" height="30"
+                          style="background-color:#1A1512; border-radius:50%; color:#F3EFE9; font-size:15px; font-weight:bold;">
+                          &#10003;
+                        </td>
+                      </tr>
+                    </table>
+                    <p style="margin:10px 0 0; color:#1A1512; font-size:10px; line-height:15px; font-weight:bold;">
+                      ORDERED
+                    </p>
+                  </td>
+
+                  <td align="center" width="25%" valign="top">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td align="center" width="30" height="30"
+                          style="background-color:#1A1512; border-radius:50%; color:#F3EFE9; font-size:15px; font-weight:bold;">
+                          &#10003;
+                        </td>
+                      </tr>
+                    </table>
+                    <p style="margin:10px 0 0; color:#1A1512; font-size:10px; line-height:15px; font-weight:bold;">
+                      CONFIRMED
+                    </p>
+                  </td>
+
+                  <td align="center" width="25%" valign="top">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td align="center" width="30" height="30"
+                          style="background-color:#1A1512; border-radius:50%; color:#F3EFE9; font-size:15px; font-weight:bold;">
+                          &#10003;
+                        </td>
+                      </tr>
+                    </table>
+                    <p style="margin:10px 0 0; color:#1A1512; font-size:10px; line-height:15px; font-weight:bold;">
+                      DISPATCHED
+                    </p>
+                  </td>
+
+                  <td align="center" width="25%" valign="top">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td align="center" width="30" height="30"
+                          style="background-color:#D8CFC4; border-radius:50%; color:#75685D; font-size:15px; font-weight:bold;">
+                          4
+                        </td>
+                      </tr>
+                    </table>
+                    <p style="margin:10px 0 0; color:#75685D; font-size:10px; line-height:15px; font-weight:bold;">
+                      DELIVERED
+                    </p>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td colspan="4" style="padding:18px 0 0;">
+                    <p style="margin:0; text-align:center; color:#75685D; font-size:12px; line-height:19px;">
+                      Your order has left our dispatch point and is on its way to you.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Tracking Details -->
+          <tr>
+            <td align="center" style="padding:0 24px 30px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F3EFE9;border:1px solid #E5DED5;">
+                <tr><td align="center" style="padding:18px;color:#75685D;font-size:12px;line-height:20px;">
+                  Tracking details will be shared as soon as they are available.
+                </td></tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Delivery Partner -->
+          <tr>
+            <td style="padding:0 24px 28px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                style="border:1px solid #E5DED5;">
+                <tr>
+                  <td style="padding:20px;">
+                    <p style="margin:0 0 16px; color:#1A1512; font-size:15px; font-weight:bold;">
+                      Your Delivery Partner
+                    </p>
+                    <p style="margin:0; color:#75685D; font-size:12px; line-height:20px;">
+                      Courier contact details will be shared once a delivery partner has been assigned.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Order Information -->
+          <tr>
+            <td style="padding:0 24px 28px;">
+              <h2 style="margin:0 0 16px; color:#1A1512; font-size:18px; line-height:24px;">
+                Order Details
+              </h2>
+
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                style="border:1px solid #E5DED5;">
+                <tr>
+                  <td style="padding:15px 16px; border-bottom:1px solid #E5DED5;">
+                    <p style="margin:0 0 5px; color:#8A7D71; font-size:10px; letter-spacing:1px;">
+                      ORDER NUMBER
+                    </p>
+                    <p style="margin:0; color:#1A1512; font-size:13px; font-weight:bold;">
+                      {{orderId}}
+                    </p>
+                  </td>
+
+                  <td align="right" style="padding:15px 16px; border-bottom:1px solid #E5DED5;">
+                    <p style="margin:0 0 5px; color:#8A7D71; font-size:10px; letter-spacing:1px;">
+                      DISPATCH DATE
+                    </p>
+                    <p style="margin:0; color:#1A1512; font-size:13px; font-weight:bold;">
+                      {{date}}
+                    </p>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td colspan="2" style="padding:16px;">
+                    <p style="margin:0 0 12px; color:#1A1512; font-size:13px; font-weight:bold;">
+                      Items in your order
+                    </p>
+
+                    <!-- Generate this HTML safely from your order items -->
+                    {{orderSummaryHtml}}
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="padding:12px 16px; border-top:1px solid #E5DED5; color:#75685D; font-size:12px;">
+                    Subtotal
+                  </td>
+                  <td align="right" style="padding:12px 16px; border-top:1px solid #E5DED5; color:#1A1512; font-size:12px;">
+                    {{subtotal}}
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="padding:12px 16px; color:#75685D; font-size:12px;">
+                    Shipping
+                  </td>
+                  <td align="right" style="padding:12px 16px; color:#1A1512; font-size:12px;">
+                    {{shippingCharges}}
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="padding:12px 16px; color:#75685D; font-size:12px;">
+                    Discount
+                  </td>
+                  <td align="right" style="padding:12px 16px; color:#1A1512; font-size:12px;">
+                    {{discount}}
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="padding:16px; border-top:1px solid #E5DED5; color:#1A1512; font-size:14px; font-weight:bold;">
+                    Order Total
+                  </td>
+                  <td align="right" style="padding:16px; border-top:1px solid #E5DED5; color:#1A1512; font-size:16px; font-weight:bold;">
+                    {{orderTotal}}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Delivery Address -->
+          <tr>
+            <td style="padding:0 24px 28px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                style="background-color:#F3EFE9;">
+                <tr>
+                  <td style="padding:20px;">
+                    <p style="margin:0 0 12px; color:#1A1512; font-size:15px; font-weight:bold;">
+                      Shipping Address
+                    </p>
+
+                    <p style="margin:0 0 5px; color:#1A1512; font-size:13px; line-height:21px; font-weight:bold;">
+                      {{name}}
+                    </p>
+
+                    <p style="margin:0; color:#6D6259; font-size:12px; line-height:21px;">
+                      {{address}}
+                    </p>
+
+                    <p style="margin:8px 0 0; color:#6D6259; font-size:12px; line-height:20px;">
+                      Phone: {{phone}}
+                      <br />
+                      Email: {{email}}
+                    </p>
+
+                    <p style="margin:12px 0 0; color:#6D6259; font-size:12px; line-height:20px;">
+                      <strong>Delivery instructions:</strong> {{deliveryInstructions}}
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Payment Information -->
+          <tr>
+            <td style="padding:0 24px 30px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                style="border:1px solid #E5DED5;">
+                <tr>
+                  <td style="padding:18px;">
+                    <p style="margin:0 0 8px; color:#1A1512; font-size:14px; font-weight:bold;">
+                      Payment Information
+                    </p>
+
+                    <p style="margin:0; color:#75685D; font-size:12px; line-height:21px;">
+                      For payment details, please refer to the option selected when you placed your order.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Delivery Reminder -->
+          <tr>
+            <td align="center" style="padding:0 30px 32px;">
+              <h2 style="margin:0 0 10px; color:#1A1512; font-size:18px; line-height:25px;">
+                A Little Reminder
+              </h2>
+
+              <p style="margin:0 auto; max-width:440px; color:#75685D; font-size:12px; line-height:21px;">
+                Please make sure someone is available at the delivery address.
+                If your plans change, use the tracking page or contact our support team for assistance.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Support Section -->
+          <tr>
+            <td align="center" style="background-color:#F3EFE9; padding:26px 24px;">
+              <p style="margin:0 0 8px; color:#1A1512; font-size:15px; font-weight:bold;">
+                Need a Hand?
+              </p>
+
+              <p style="margin:0 auto 16px; max-width:400px; color:#75685D; font-size:12px; line-height:20px;">
+                We're here if you need help with your delivery or order.
+              </p>
+
+              <a href="{{supportUrl}}"
+                style="color:#1A1512; font-size:12px; font-weight:bold; text-decoration:underline;">
+                CONTACT VEXORA SUPPORT
+              </a>
+
+              <p style="margin:12px 0 0; color:#75685D; font-size:12px;">
+                {{supportEmail}}
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td align="center" style="background-color:#1A1512; padding:28px 20px;">
+              <p style="margin:0; color:#F3EFE9; font-size:20px; line-height:26px; font-weight:bold; letter-spacing:4px;">
+                VEXORA
+              </p>
+
+              <p style="margin:12px 0 18px; color:#C9BDB0; font-size:10px; line-height:17px; letter-spacing:1px;">
+                WEAR YOUR STATEMENT.
+              </p>
+
+              <p style="margin:0; color:#A99B8E; font-size:10px; line-height:18px;">
+                &copy; {{year}} VEXORA. All rights reserved.
+                <br />
+                This email was sent regarding your VEXORA order.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+        <!-- End Main Email Container -->
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>
+```
