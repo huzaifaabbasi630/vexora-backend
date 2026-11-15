@@ -2,17 +2,40 @@ const nodemailer = require('nodemailer');
 const fs = require('fs');
 const path = require('path');
 
-const emailPort = Number.parseInt(process.env.EMAIL_PORT, 10) || 465;
+const configuredEmailPort = Number.parseInt(process.env.EMAIL_PORT, 10);
+const emailPort = [465, 587].includes(configuredEmailPort) ? configuredEmailPort : 587;
+const getEmailProvider = () => 'smtp';
 
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST || 'smtp.gmail.com',
   port: emailPort,
   secure: emailPort === 465,
+  pool: true,
+  maxConnections: 1,
+  rateDelta: 20000,
+  connectionTimeout: 30000,
+  greetingTimeout: 30000,
+  socketTimeout: 60000,
+  tls: {
+    minVersion: 'TLSv1.2',
+  },
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
 });
+
+function getEmailConfigStatus() {
+  const provider = getEmailProvider();
+  return {
+    provider,
+    senderConfigured: Boolean(process.env.EMAIL_FROM || process.env.EMAIL_USER),
+    hostConfigured: Boolean(process.env.EMAIL_HOST),
+    portConfigured: Boolean(process.env.EMAIL_PORT),
+    userConfigured: Boolean(process.env.EMAIL_USER),
+    passwordConfigured: Boolean(process.env.EMAIL_PASS),
+  };
+}
 
 /**
  * Send an email with an HTML template.
@@ -47,14 +70,54 @@ async function sendEmail(to, subject, templateName, variables = {}) {
     });
   }
 
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to,
-    subject,
-    html,
-  };
+  const provider = getEmailProvider();
+  const from = process.env.EMAIL_FROM || process.env.EMAIL_USER;
+  if (!from) {
+    const error = new Error('SMTP sender is not configured. Set EMAIL_FROM or EMAIL_USER.');
+    error.code = 'EMAIL_SMTP_NOT_CONFIGURED';
+    throw error;
+  }
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    const error = new Error('SMTP credentials are not configured. Set EMAIL_USER and EMAIL_PASS.');
+    error.code = 'EMAIL_SMTP_NOT_CONFIGURED';
+    throw error;
+  }
 
-  return transporter.sendMail(mailOptions);
+  if (provider === 'resend') {
+    if (!process.env.RESEND_API_KEY) {
+      const error = new Error('RESEND_API_KEY is required when EMAIL_PROVIDER is set to resend.');
+      error.code = 'EMAIL_PROVIDER_NOT_CONFIGURED';
+      throw error;
+    }
+
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ from, to, subject, html }),
+      signal: AbortSignal.timeout(15000),
+    });
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      const error = new Error(result.message || `Resend email request failed with status ${response.status}.`);
+      error.code = result.name || 'RESEND_API_ERROR';
+      error.responseCode = response.status;
+      throw error;
+    }
+
+    return { accepted: [to], rejected: [], messageId: result.id };
+  }
+
+  if (provider !== 'smtp') {
+    const error = new Error(`Unsupported email provider "${provider}". Set EMAIL_PROVIDER to "resend" or "smtp".`);
+    error.code = 'EMAIL_PROVIDER_INVALID';
+    throw error;
+  }
+
+  return transporter.sendMail({ from, to, subject, html });
 }
 
 function escapeHtml(value) {
@@ -67,4 +130,4 @@ function escapeHtml(value) {
   })[character]);
 }
 
-module.exports = { sendEmail, transporter };
+module.exports = { sendEmail, transporter, getEmailConfigStatus };

@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const Product = require('../models/Product');
+const Order = require('../models/Order');
 const AdminAuditLog = require('../models/AdminAuditLog');
 
 const slugify = (value) => String(value || '')
@@ -12,6 +13,14 @@ const slugify = (value) => String(value || '')
   .slice(0, 180);
 
 const cleanString = (value, maxLength) => typeof value === 'string' ? value.trim().slice(0, maxLength) : '';
+const addOrFilter = (query, clauses) => {
+  if (query.$or) {
+    query.$and = [...(query.$and || []), { $or: query.$or }, { $or: clauses }];
+    delete query.$or;
+    return;
+  }
+  query.$or = clauses;
+};
 const validImages = (images) => Array.isArray(images)
   && images.length <= 20
   && images.every((image) => image && typeof image.url === 'string'
@@ -53,6 +62,23 @@ function parseProductInput(body, existing = null) {
 
   for (const [key, max] of Object.entries(allowedStringFields)) {
     if (Object.prototype.hasOwnProperty.call(body, key)) fields[key] = cleanString(body[key], max);
+  }
+  if (Object.prototype.hasOwnProperty.call(body, 'categories')) {
+    if (!Array.isArray(body.categories) || body.categories.length > 50
+      || body.categories.some((value) => typeof value !== 'string' || value.length > 100)) {
+      throw new Error('Categories must be an array of at most 50 strings, each up to 100 characters.');
+    }
+    fields.categories = [...new Set(body.categories.map((value) => cleanString(value, 100)).filter(Boolean))];
+    if (!fields.category) {
+      fields.category = fields.categories.includes(existing?.category)
+        ? existing.category
+        : fields.categories[0] || '';
+    }
+    if (fields.category && !fields.categories.includes(fields.category)) {
+      fields.categories.unshift(fields.category);
+    }
+  } else if (Object.prototype.hasOwnProperty.call(body, 'category')) {
+    fields.categories = fields.category ? [fields.category] : [];
   }
   if (Object.prototype.hasOwnProperty.call(body, 'slug')) {
     fields.slug = slugify(body.slug);
@@ -176,17 +202,22 @@ exports.listPublicProducts = async (req, res) => {
   const page = Math.max(1, Number(req.query.page) || 1);
   const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 100));
   const query = { status: 'published' };
-  if (req.query.category) query.category = cleanString(req.query.category, 100);
+  if (req.query.category) {
+    const category = cleanString(req.query.category, 100);
+    addOrFilter(query, [{ category }, { categories: category }]);
+  }
   if (req.query.featured === 'true') query.featured = true;
   if (req.query.newArrival === 'true') query.newArrival = true;
   if (req.query.search) {
     const search = cleanString(req.query.search, 80).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    query.$or = [
+    const searchClauses = [
       { name: { $regex: search, $options: 'i' } },
       { description: { $regex: search, $options: 'i' } },
       { category: { $regex: search, $options: 'i' } },
+      { categories: { $regex: search, $options: 'i' } },
       { tags: { $regex: search, $options: 'i' } },
     ];
+    addOrFilter(query, searchClauses);
   }
   const sorters = {
     newest: { createdAt: -1 },
@@ -204,12 +235,46 @@ exports.listPublicProducts = async (req, res) => {
 
 exports.getPublicProduct = async (req, res) => {
   const key = cleanString(req.params.slug, 180).toLowerCase();
-  const product = await Product.findOne({
+  const product = await Product.findOneAndUpdate({
     status: 'published',
     $or: [{ slug: key }, { legacyId: key }],
-  }).lean();
+  }, { $inc: { viewCount: 1 } }, { new: true }).lean();
   if (!product) return res.status(404).json({ message: 'Product not found.' });
   return res.json({ product: toPublicProduct(product) });
+};
+
+exports.trackPublicProductView = async (req, res) => {
+  const key = cleanString(req.params.slug, 180).toLowerCase();
+  const product = await Product.findOneAndUpdate({
+    status: 'published',
+    $or: [{ slug: key }, { legacyId: key }],
+  }, { $inc: { viewCount: 1 } }, { new: true, projection: { _id: 1, viewCount: 1 } }).lean();
+  if (!product) return res.status(404).json({ message: 'Product not found.' });
+  return res.status(204).end();
+};
+
+exports.listPopularPublicProducts = async (req, res) => {
+  const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 100));
+  const [products, sales] = await Promise.all([
+    Product.find({ status: 'published' }).lean(),
+    Order.aggregate([
+      { $match: { status: { $in: ['Confirmed', 'Dispatched', 'On The Way', 'Delivered'] } } },
+      { $unwind: '$cartItems' },
+      { $match: { 'cartItems.productId': { $ne: null } } },
+      { $group: { _id: '$cartItems.productId', unitsSold: { $sum: '$cartItems.qty' } } },
+    ]),
+  ]);
+  const unitsSoldByProduct = new Map(sales.map((sale) => [String(sale._id), sale.unitsSold]));
+  const ranked = products
+    .map((product) => ({
+      ...product,
+      unitsSold: unitsSoldByProduct.get(String(product._id)) || 0,
+    }))
+    .sort((a, b) => b.unitsSold - a.unitsSold
+      || (b.viewCount || 0) - (a.viewCount || 0)
+      || new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(0, limit);
+  return res.json({ rows: ranked.map(toPublicProduct) });
 };
 
 exports.listAdminProducts = async (req, res) => {
@@ -217,15 +282,19 @@ exports.listAdminProducts = async (req, res) => {
   const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 10));
   const query = {};
   if (['draft', 'published', 'archived'].includes(req.query.status)) query.status = req.query.status;
-  if (req.query.category) query.category = cleanString(req.query.category, 100);
+  if (req.query.category) {
+    const category = cleanString(req.query.category, 100);
+    addOrFilter(query, [{ category }, { categories: category }]);
+  }
   if (req.query.featured === 'true' || req.query.featured === 'false') query.featured = req.query.featured === 'true';
   if (req.query.search) {
     const search = cleanString(req.query.search, 80).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    query.$or = [
+    const searchClauses = [
       { name: { $regex: search, $options: 'i' } },
       { sku: { $regex: search, $options: 'i' } },
       { slug: { $regex: search, $options: 'i' } },
     ];
+    addOrFilter(query, searchClauses);
   }
   const sorters = {
     name: { name: 1 },
@@ -235,11 +304,13 @@ exports.listAdminProducts = async (req, res) => {
     stock: { stock: 1 },
   };
   const sort = sorters[req.query.sort] || { createdAt: -1 };
-  const [total, rows, categories] = await Promise.all([
+  const [total, rows, primaryCategories, assignedCategories] = await Promise.all([
     Product.countDocuments(query),
     Product.find(query).sort(sort).skip((page - 1) * limit).limit(limit).lean(),
     Product.distinct('category'),
+    Product.distinct('categories'),
   ]);
+  const categories = [...new Set([...primaryCategories, ...assignedCategories])].filter(Boolean).sort((a, b) => a.localeCompare(b));
   return res.json({ page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)), categories: categories.sort(), rows });
 };
 

@@ -1,13 +1,62 @@
 // src/utils/whatsapp.js
 const axios = require('axios');
 
-const BASE_URL = 'https://graph.facebook.com/v25.0';
+const BASE_URL = 'https://graph.facebook.com';
 
 function getHeaders() {
+  const accessToken = process.env.WHATSAPP_TOKEN || process.env.META_ACCESS_TOKEN;
+  if (!accessToken) {
+    throw new Error('WhatsApp access token is not configured.');
+  }
+
   return {
-    Authorization: `Bearer ${process.env.META_ACCESS_TOKEN}`,
+    Authorization: `Bearer ${accessToken}`,
     'Content-Type': 'application/json',
   };
+}
+
+function getWhatsAppConfigStatus() {
+  return {
+    accessTokenConfigured: Boolean(process.env.WHATSAPP_TOKEN || process.env.META_ACCESS_TOKEN),
+    accessTokenSource: process.env.WHATSAPP_TOKEN ? 'WHATSAPP_TOKEN' : process.env.META_ACCESS_TOKEN ? 'META_ACCESS_TOKEN' : null,
+    phoneNumberIdConfigured: Boolean(process.env.META_PHONE_NUMBER_ID),
+    phoneNumberIdSource: process.env.META_PHONE_NUMBER_ID ? 'META_PHONE_NUMBER_ID' : null,
+  };
+}
+
+async function sendWhatsAppMessage(payload, apiVersion = 'v25.0') {
+  try {
+    const phoneNumberId = process.env.META_PHONE_NUMBER_ID;
+    if (!phoneNumberId) {
+      throw new Error('WhatsApp phone number ID is not configured. Set META_PHONE_NUMBER_ID.');
+    }
+
+    const recipient = formatPhoneNumber(payload.to);
+    console.log('📤 WhatsApp API request starting:', {
+      apiVersion,
+      phoneNumberId,
+      messageType: payload.type,
+      recipientLast4: recipient.slice(-4),
+      ...getWhatsAppConfigStatus(),
+    });
+
+    const response = await axios.post(
+      `${BASE_URL}/${apiVersion}/${phoneNumberId}/messages`,
+      payload,
+      { headers: getHeaders(), timeout: 15000 }
+    );
+
+    console.log('✅ WhatsApp API request succeeded:', {
+      apiVersion,
+      recipientLast4: recipient.slice(-4),
+      httpStatus: response.status,
+      messageId: response.data?.messages?.[0]?.id || null,
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ WhatsApp API Error:', error.response?.data || error.message);
+    throw error;
+  }
 }
 
 // ─── Phone Number Formatter ────────────────────────────────────────────────────
@@ -89,13 +138,20 @@ async function sendCustomerConfirmationMessage(customerPhone, customerName, conf
     text: { body: text },
   };
 
-  const response = await axios.post(
-    `${BASE_URL}/${process.env.META_PHONE_NUMBER_ID}/messages`,
-    payload,
-    { headers: getHeaders(), timeout: 15000 }
-  );
+  return sendWhatsAppMessage(payload);
+}
 
-  return response.data;
+async function sendCustomerOrderConfirmedMessage(customerPhone, orderId) {
+  const payload = {
+    messaging_product: 'whatsapp',
+    to: formatPhoneNumber(customerPhone),
+    type: 'text',
+    text: {
+      body: `🎉 Order Confirmed! (ID: #${orderId}) \n Shukriya! Aapka order successfully confirm ho gaya hai.`,
+    },
+  };
+
+  return sendWhatsAppMessage(payload, 'v17.0');
 }
 
 // ─── Owner Interactive Message (Dispatched / On The Way buttons) ──────────────
@@ -120,7 +176,7 @@ async function sendOrderInteractiveMessage(toPhone, order) {
     })
     .join('\n');
 
-  const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+  const backendUrl = (process.env.RENDER_URL || 'https://vexora-backend-rniq.onrender.com').replace(/\/+$/, '');
   const dispatchedLink = `${backendUrl}/api/orders/${_id}/status/Dispatched`;
   const onTheWayLink    = `${backendUrl}/api/orders/${_id}/status/On%20The%20Way`;
 
@@ -172,13 +228,7 @@ async function sendOrderInteractiveMessage(toPhone, order) {
     },
   };
 
-  const response = await axios.post(
-    `${BASE_URL}/${process.env.META_PHONE_NUMBER_ID}/messages`,
-    payload,
-    { headers: getHeaders(), timeout: 15000 }
-  );
-
-  return response.data;
+  return sendWhatsAppMessage(payload);
 }
 
 // ─── Owner Template Message (Approved Meta Template) ────────────────────────
@@ -228,13 +278,7 @@ async function sendOwnerTemplateMessage(ownerPhoneNumber, order) {
     },
   };
 
-  const response = await axios.post(
-    `${BASE_URL}/${process.env.META_PHONE_NUMBER_ID}/messages`,
-    payload,
-    { headers: getHeaders(), timeout: 15000 }
-  );
-
-  return response.data;
+  return sendWhatsAppMessage(payload);
 }
 
 // ─── Generic Plain-Text Sender ────────────────────────────────────────────────
@@ -254,19 +298,15 @@ async function sendWhatsAppText(toPhone, text) {
     text: { body: text },
   };
 
-  const response = await axios.post(
-    `${BASE_URL}/${process.env.META_PHONE_NUMBER_ID}/messages`,
-    payload,
-    { headers: getHeaders(), timeout: 15000 }
-  );
-
-  return response.data;
+  return sendWhatsAppMessage(payload);
 }
 
 module.exports = {
   formatPhoneNumber,
   sendCustomerConfirmationMessage,
+  sendCustomerOrderConfirmedMessage,
   sendOrderInteractiveMessage,
   sendOwnerTemplateMessage,
   sendWhatsAppText,
+  getWhatsAppConfigStatus,
 };

@@ -4,22 +4,46 @@ require('dotenv').config({ path: path.join(__dirname, '.env') })
 const axios = require('axios')
 const cors = require('cors')
 const express = require('express')
+const connectDB = require('./src/config/db')
+const adminRoutes = require('./src/routes/admin')
+const { allowedOrigins, normalizeOrigin } = require('./src/config/allowedOrigins')
+const productRoutes = require('./src/routes/products')
+const webhookRoutes = require('./src/routes/webhook')
+const { getWhatsAppConfigStatus } = require('./src/utils/whatsapp')
+const { getEmailConfigStatus } = require('./src/utils/email')
+const { getPublishedCmsPage } = require('./src/controllers/adminController')
 
 const app = express()
 const port = Number(process.env.PORT) || 5000
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:4173',
-  'http://localhost:3000',
-  'http://127.0.0.1:5173',
-  'http://127.0.0.1:4173',
-  'http://127.0.0.1:3000',
-]
 
-app.use(cors({ origin: allowedOrigins }));
+console.log('WhatsApp configuration status:', getWhatsAppConfigStatus())
+console.log('Email configuration status:', getEmailConfigStatus())
+
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.has(normalizeOrigin(origin))) return callback(null, true)
+    const error = new Error('Origin is not allowed by CORS.')
+    error.status = 403
+    return callback(error)
+  },
+  credentials: true,
+}))
 app.use(express.json({ limit: '32kb' }));
 const orderRoutes = require('./src/routes/order');
 app.use('/api', orderRoutes);
+app.use('/api/admin', adminRoutes)
+app.use('/api/products', productRoutes);
+app.get('/api/content/:slug', (req, res, next) => {
+  Promise.resolve(getPublishedCmsPage(req, res)).catch(next);
+});
+
+connectDB().catch((error) => console.error('Database initialization failed:', error));
+
+app.use('/webhook', (req, _res, next) => {
+  console.log('📩 WhatsApp webhook HTTP request received:', req.method, req.path);
+  next();
+});
+app.use('/webhook', webhookRoutes);
 
 function formatOrderMessage({ customerInfo, cartItems, total }) {
   const itemLines = cartItems.map(
@@ -145,8 +169,7 @@ app.post('/api/checkout', async (req, res) => {
 
     return res.status(200).json({ message: 'Order notification sent successfully.' });
   } catch (error) {
-    // Detailed error logging for debugging
-    console.error('DETAILED CHECKOUT ERROR:', error.response?.data || error.message || error);
+    console.error("WHATSAPP SEND ERROR RESPONSE:", error.response ? error.response.data : error.message);
     // If the error originated from validation, ensure a 400 response
     if (error?.isValidation) {
       return res.status(400).json({ message: error.message });

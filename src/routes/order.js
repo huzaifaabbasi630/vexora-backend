@@ -2,7 +2,7 @@ const express = require('express');
 const { checkout, confirmOrder, updateOrderStatus } = require('../controllers/orderController');
 const router = express.Router();
 
-// POST /api/checkout – receive and save an order
+// POST /api/checkout – receive order, save to DB, send confirmation email
 router.post('/checkout', checkout);
 
 // GET /api/orders/confirm/:orderId – customer clicks email link to confirm order

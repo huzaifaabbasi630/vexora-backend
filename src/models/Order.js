@@ -13,6 +13,19 @@ const cartItemSchema = new mongoose.Schema({
   selectedColor: { type: String, default: '' },
 }, { _id: false });
 
+const confirmationNotificationsSchema = new mongoose.Schema({
+  emailSentAt: { type: Date, default: null },
+  customerWhatsAppSentAt: { type: Date, default: null },
+  ownerWhatsAppSentAt: { type: Date, default: null },
+}, { _id: false });
+
+const statusNotificationsSchema = new mongoose.Schema({
+  dispatchedEmailSentAt: { type: Date, default: null },
+  dispatchedWhatsAppSentAt: { type: Date, default: null },
+  onTheWayEmailSentAt: { type: Date, default: null },
+  onTheWayWhatsAppSentAt: { type: Date, default: null },
+}, { _id: false });
+
 const orderSchema = new mongoose.Schema({
   // Customer details collected at checkout (no login required)
   customerInfo: {
@@ -31,8 +44,16 @@ const orderSchema = new mongoose.Schema({
     default: 'Pending Confirmation',
   },
 
-  // Set when the customer confirms the order.
+  // Set when customer clicks the confirmation link in the email
   confirmedAt: { type: Date, default: null },
+  confirmationNotifications: {
+    type: confirmationNotificationsSchema,
+    default: () => ({}),
+  },
+  statusNotifications: {
+    type: statusNotificationsSchema,
+    default: () => ({}),
+  },
 
   // TTL: MongoDB auto-deletes the document when this date is reached.
   // Unconfirmed orders expire after 1 day; confirmed orders are kept for 30 days.

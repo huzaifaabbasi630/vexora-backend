@@ -1,5 +1,6 @@
 const express = require('express');
 const { requireAuth, requireOwner } = require('../middleware/adminAuth');
+const { allowedOrigins, normalizeOrigin } = require('../config/allowedOrigins');
 const {
   loginOwner,
   resendOtp,
@@ -15,6 +16,7 @@ const {
   anonymizeCustomer,
   deleteAdminCustomer,
   updateAdminOrderStatus,
+  sendAdminOrderConfirmation,
   deleteAdminOrder,
   getAdminMessages,
   updateAdminMessageStatus,
@@ -34,17 +36,10 @@ const {
 
 const router = express.Router();
 const asyncHandler = (handler) => (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next);
-const allowedOrigins = new Set([
-  process.env.FRONTEND_URL,
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
-  'http://localhost:3000',
-  'http://127.0.0.1:3000',
-].filter(Boolean));
 
 router.use((req, res, next) => {
   const origin = req.get('origin');
-  if (origin && !allowedOrigins.has(origin)) {
+  if (origin && !allowedOrigins.has(normalizeOrigin(origin))) {
     return res.status(403).json({ message: 'Request origin is not allowed.' });
   }
   if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)
@@ -68,6 +63,7 @@ router.patch('/customers/:customerId/status', requireAuth, requireOwner, asyncHa
 router.delete('/customers/:customerId/anonymize', requireAuth, requireOwner, asyncHandler(anonymizeCustomer));
 router.delete('/customers/:customerId', requireAuth, requireOwner, asyncHandler(deleteAdminCustomer));
 router.get('/orders', requireAuth, requireOwner, asyncHandler(getAdminOrders));
+router.post('/orders/:orderId/confirmation-email', requireAuth, requireOwner, asyncHandler(sendAdminOrderConfirmation));
 router.patch('/orders/:orderId/status', requireAuth, requireOwner, asyncHandler(updateAdminOrderStatus));
 router.delete('/orders/:orderId', requireAuth, requireOwner, asyncHandler(deleteAdminOrder));
 router.get('/messages', requireAuth, requireOwner, asyncHandler(getAdminMessages));
