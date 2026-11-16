@@ -70,7 +70,6 @@ async function sendEmail(to, subject, templateName, variables = {}) {
     });
   }
 
-  const provider = getEmailProvider();
   const from = process.env.EMAIL_FROM || process.env.EMAIL_USER;
   if (!from) {
     const error = new Error('SMTP sender is not configured. Set EMAIL_FROM or EMAIL_USER.');
@@ -80,40 +79,6 @@ async function sendEmail(to, subject, templateName, variables = {}) {
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
     const error = new Error('SMTP credentials are not configured. Set EMAIL_USER and EMAIL_PASS.');
     error.code = 'EMAIL_SMTP_NOT_CONFIGURED';
-    throw error;
-  }
-
-  if (provider === 'resend') {
-    if (!process.env.RESEND_API_KEY) {
-      const error = new Error('RESEND_API_KEY is required when EMAIL_PROVIDER is set to resend.');
-      error.code = 'EMAIL_PROVIDER_NOT_CONFIGURED';
-      throw error;
-    }
-
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ from, to, subject, html }),
-      signal: AbortSignal.timeout(15000),
-    });
-    const result = await response.json().catch(() => ({}));
-
-    if (!response.ok) {
-      const error = new Error(result.message || `Resend email request failed with status ${response.status}.`);
-      error.code = result.name || 'RESEND_API_ERROR';
-      error.responseCode = response.status;
-      throw error;
-    }
-
-    return { accepted: [to], rejected: [], messageId: result.id };
-  }
-
-  if (provider !== 'smtp') {
-    const error = new Error(`Unsupported email provider "${provider}". Set EMAIL_PROVIDER to "resend" or "smtp".`);
-    error.code = 'EMAIL_PROVIDER_INVALID';
     throw error;
   }
 

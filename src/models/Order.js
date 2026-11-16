@@ -13,19 +13,6 @@ const cartItemSchema = new mongoose.Schema({
   selectedColor: { type: String, default: '' },
 }, { _id: false });
 
-const confirmationNotificationsSchema = new mongoose.Schema({
-  emailSentAt: { type: Date, default: null },
-  customerWhatsAppSentAt: { type: Date, default: null },
-  ownerWhatsAppSentAt: { type: Date, default: null },
-}, { _id: false });
-
-const statusNotificationsSchema = new mongoose.Schema({
-  dispatchedEmailSentAt: { type: Date, default: null },
-  dispatchedWhatsAppSentAt: { type: Date, default: null },
-  onTheWayEmailSentAt: { type: Date, default: null },
-  onTheWayWhatsAppSentAt: { type: Date, default: null },
-}, { _id: false });
-
 const orderSchema = new mongoose.Schema({
   // Customer details collected at checkout (no login required)
   customerInfo: {
@@ -46,13 +33,17 @@ const orderSchema = new mongoose.Schema({
 
   // Set when customer clicks the confirmation link in the email
   confirmedAt: { type: Date, default: null },
+
   confirmationNotifications: {
-    type: confirmationNotificationsSchema,
-    default: () => ({}),
+    emailSentAt: { type: Date, default: null },
+    customerWhatsAppSentAt: { type: Date, default: null },
+    ownerWhatsAppSentAt: { type: Date, default: null },
   },
   statusNotifications: {
-    type: statusNotificationsSchema,
-    default: () => ({}),
+    dispatchedEmailSentAt: { type: Date, default: null },
+    dispatchedWhatsAppSentAt: { type: Date, default: null },
+    onTheWayEmailSentAt: { type: Date, default: null },
+    onTheWayWhatsAppSentAt: { type: Date, default: null },
   },
 
   // TTL: MongoDB auto-deletes the document when this date is reached.
