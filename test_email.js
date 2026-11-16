@@ -7,7 +7,7 @@ const { sendEmail } = require('./src/utils/email');
       process.env.EMAIL_USER,
       'Test email from Vexora',
       null,
-      { html: `<h1>Hello!</h1><p>If you see this, your SMTP setup works.</p>` }
+      { html: `<h1>Hello!</h1><p>If you see this, the Brevo email API is working.</p>` }
     );
     console.log('✅ Test email sent successfully');
   } catch (err) {

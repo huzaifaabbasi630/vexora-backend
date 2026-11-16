@@ -42,16 +42,7 @@ async function sendOrderStatusNotifications(order, status) {
       }
 
       try {
-        const result = await sendOrderStatusEmail(order, status);
-        const accepted = result.accepted?.some((recipient) =>
-          String(recipient).toLowerCase() === email.toLowerCase()
-        );
-        const rejected = result.rejected?.some((recipient) =>
-          String(recipient).toLowerCase() === email.toLowerCase()
-        );
-        if (rejected || !accepted) {
-          throw new Error(`Mail provider did not accept the ${status} email recipient.`);
-        }
+        await sendOrderStatusEmail(order, status);
         await Order.updateOne(
           { _id: order._id },
           { $set: { [`statusNotifications.${emailSentAtKey}`]: new Date() } }

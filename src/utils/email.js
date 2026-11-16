@@ -1,39 +1,13 @@
-const nodemailer = require('nodemailer');
 const fs = require('fs');
 const path = require('path');
 
-const configuredEmailPort = Number.parseInt(process.env.EMAIL_PORT, 10);
-const emailPort = [465, 587].includes(configuredEmailPort) ? configuredEmailPort : 587;
-const getEmailProvider = () => 'smtp';
-
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST || 'smtp-relay.brevo.com',
-  port: emailPort,
-  secure: emailPort === 465,
-  pool: true,
-  maxConnections: 1,
-  rateDelta: 20000,
-  connectionTimeout: 30000,
-  greetingTimeout: 30000,
-  socketTimeout: 60000,
-  tls: {
-    minVersion: 'TLSv1.2',
-  },
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+const BREVO_EMAIL_API_URL = 'https://api.brevo.com/v3/smtp/email';
 
 function getEmailConfigStatus() {
-  const provider = getEmailProvider();
   return {
-    provider,
+    provider: 'brevo-api',
     senderConfigured: Boolean(process.env.EMAIL_FROM || process.env.EMAIL_USER),
-    hostConfigured: Boolean(process.env.EMAIL_HOST),
-    portConfigured: Boolean(process.env.EMAIL_PORT),
-    userConfigured: Boolean(process.env.EMAIL_USER),
-    passwordConfigured: Boolean(process.env.EMAIL_PASS),
+    apiKeyConfigured: Boolean(process.env.EMAIL_PASS),
   };
 }
 
@@ -62,7 +36,7 @@ async function sendEmail(to, subject, templateName, variables = {}) {
     }
 
     Object.entries(variables).forEach(([key, value]) => {
-      if (key === 'html') return;
+      if (key === 'html' || key === 'textContent' || key === 'replyTo') return;
       const placeholder = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
       // Keys ending with 'Html' are injected as raw HTML (not escaped)
       const safe = key.endsWith('Html') ? String(value) : escapeHtml(value);
@@ -72,17 +46,69 @@ async function sendEmail(to, subject, templateName, variables = {}) {
 
   const from = process.env.EMAIL_FROM || process.env.EMAIL_USER;
   if (!from) {
-    const error = new Error('SMTP sender is not configured. Set EMAIL_FROM or EMAIL_USER.');
-    error.code = 'EMAIL_SMTP_NOT_CONFIGURED';
+    const error = new Error('Email sender is not configured. Set EMAIL_FROM or EMAIL_USER.');
+    error.code = 'EMAIL_BREVO_NOT_CONFIGURED';
     throw error;
   }
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    const error = new Error('SMTP credentials are not configured. Set EMAIL_USER and EMAIL_PASS.');
-    error.code = 'EMAIL_SMTP_NOT_CONFIGURED';
+  if (!process.env.EMAIL_PASS) {
+    const error = new Error('Brevo API key is not configured. Set EMAIL_PASS.');
+    error.code = 'EMAIL_BREVO_NOT_CONFIGURED';
     throw error;
   }
 
-  return transporter.sendMail({ from, to, subject, html });
+  const payload = {
+    sender: {
+      name: process.env.EMAIL_FROM_NAME || 'VEXORA',
+      email: from,
+    },
+    to: [{ email: to }],
+    subject,
+    htmlContent: html,
+  };
+  if (typeof variables.textContent === 'string') {
+    payload.textContent = variables.textContent;
+  }
+  if (typeof variables.replyTo === 'string' && variables.replyTo) {
+    payload.replyTo = { email: variables.replyTo };
+  }
+
+  try {
+    const response = await fetch(BREVO_EMAIL_API_URL, {
+      method: 'POST',
+      headers: {
+        accept: 'application/json',
+        'api-key': process.env.EMAIL_PASS,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+    const responseText = await response.text();
+    let responseData = null;
+    if (responseText) {
+      try {
+        responseData = JSON.parse(responseText);
+      } catch {
+        responseData = { message: responseText };
+      }
+    }
+
+    if (!response.ok) {
+      const detail = responseData?.message || responseData?.code || response.statusText || 'Unknown Brevo API error.';
+      const error = new Error(`Brevo email API request failed (HTTP ${response.status}): ${String(detail).slice(0, 300)}`);
+      error.code = responseData?.code || 'BREVO_API_ERROR';
+      error.responseCode = response.status;
+      throw error;
+    }
+
+    return responseData;
+  } catch (error) {
+    console.error('Brevo email API request failed:', {
+      code: error.code || 'EMAIL_REQUEST_FAILED',
+      responseCode: error.responseCode || null,
+      message: error.message,
+    });
+    throw error;
+  }
 }
 
 function escapeHtml(value) {
@@ -95,4 +121,4 @@ function escapeHtml(value) {
   })[character]);
 }
 
-module.exports = { sendEmail, transporter, getEmailConfigStatus };
+module.exports = { sendEmail, getEmailConfigStatus };

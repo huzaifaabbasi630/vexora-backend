@@ -41,16 +41,7 @@ async function sendOrderConfirmationNotifications(order) {
       }
 
       try {
-        const result = await sendEmailConfirmation(order);
-        const accepted = result.accepted?.some((recipient) =>
-          String(recipient).toLowerCase() === email.toLowerCase()
-        );
-        const rejected = result.rejected?.some((recipient) =>
-          String(recipient).toLowerCase() === email.toLowerCase()
-        );
-        if (rejected || !accepted) {
-          throw new Error('Mail provider did not accept the order confirmation email recipient.');
-        }
+        await sendEmailConfirmation(order);
 
         await Order.updateOne(
           { _id: order._id },

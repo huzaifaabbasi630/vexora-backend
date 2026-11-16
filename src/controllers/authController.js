@@ -46,12 +46,12 @@ async function sendEmailNotification(to, name, template, subject) {
     return true;
   } catch (error) {
     const errorCode = error.code || 'EMAIL_ERROR';
-    const smtpStatus = error.responseCode ? `, SMTP ${error.responseCode}` : '';
+    const httpStatus = error.responseCode ? `, HTTP ${error.responseCode}` : '';
     const reason = error.message ? `: ${error.message.slice(0, 240)}` : '';
-    const authHint = errorCode === 'EAUTH' || error.responseCode === 535
-      ? ' Gmail SMTP authentication failed; use a valid Gmail App Password.'
+    const authHint = error.responseCode === 401 || error.responseCode === 403
+      ? ' Check that EMAIL_PASS contains a valid Brevo API key.'
       : '';
-    console.error(`${template} email failed (${errorCode}${smtpStatus})${reason}.${authHint}`);
+    console.error(`${template} email failed (${errorCode}${httpStatus})${reason}.${authHint}`);
     return false;
   }
 }

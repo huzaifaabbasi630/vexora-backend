@@ -1,5 +1,5 @@
 const ContactMessage = require('../models/ContactMessage');
-const { transporter } = require('../utils/email');
+const { sendEmail } = require('../utils/email');
 
 const MAX_REQUESTS = 5;
 const WINDOW_MS = 15 * 60 * 1000;
@@ -92,8 +92,8 @@ async function sendContactMessage(req, res) {
   }
 
   const supportEmail = process.env.SUPPORT_EMAIL || process.env.EMAIL_USER;
-  if (!supportEmail || !process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    console.error('Contact email is not configured. Check SUPPORT_EMAIL, EMAIL_USER and EMAIL_PASS.');
+  if (!supportEmail || !(process.env.EMAIL_FROM || process.env.EMAIL_USER) || !process.env.EMAIL_PASS) {
+    console.error('Contact email is not configured. Check SUPPORT_EMAIL, EMAIL_FROM and EMAIL_PASS.');
     return res.status(503).json({ message: 'Your message was saved, but email delivery is not configured. Please use WhatsApp or try again later.' });
   }
 
@@ -115,17 +115,14 @@ async function sendContactMessage(req, res) {
     <p>${escapeHtml(cleanMessage).replace(/\r?\n/g, '<br>')}</p>`;
 
   try {
-    await transporter.sendMail({
-      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
-      to: supportEmail,
-      replyTo: cleanEmail,
-      subject: `VEXORA contact: ${cleanSubject}`,
-      text,
+    await sendEmail(supportEmail, `VEXORA contact: ${cleanSubject}`, null, {
       html,
+      textContent: text,
+      replyTo: cleanEmail,
     });
     return res.status(200).json({ message: 'Thanks for reaching out. Your message was sent successfully.' });
   } catch (error) {
-    console.error(`Contact email failed (${error.code || 'EMAIL_ERROR'}${error.responseCode ? `, SMTP ${error.responseCode}` : ''}).`);
+    console.error(`Contact email failed (${error.code || 'EMAIL_ERROR'}${error.responseCode ? `, HTTP ${error.responseCode}` : ''}).`);
     return res.status(502).json({ message: 'Your message was saved, but email delivery failed. Please contact us by email or WhatsApp if urgent.' });
   }
 }

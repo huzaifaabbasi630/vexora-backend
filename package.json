@@ -1,8 +1,11 @@
 {
   "name": "ecommerce-backend",
   "version": "1.0.0",
-  "description": "Node.js/Express e-commerce backend with MongoDB, JWT, Nodemailer, WhatsApp Cloud API",
+  "description": "Node.js/Express e-commerce backend with MongoDB, Brevo email API, WhatsApp Cloud API",
   "main": "src/index.js",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
@@ -17,7 +20,6 @@
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.5.2",
-    "nodemailer": "^6.9.13",
     "serverless-http": "^4.0.0"
   },
   "devDependencies": {
