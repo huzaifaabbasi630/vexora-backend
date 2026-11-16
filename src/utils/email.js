@@ -7,7 +7,7 @@ const emailPort = [465, 587].includes(configuredEmailPort) ? configuredEmailPort
 const getEmailProvider = () => 'smtp';
 
 const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+  host: process.env.EMAIL_HOST || 'smtp-relay.brevo.com',
   port: emailPort,
   secure: emailPort === 465,
   pool: true,

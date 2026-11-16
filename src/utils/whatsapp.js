@@ -176,7 +176,11 @@ async function sendOrderInteractiveMessage(toPhone, order) {
     })
     .join('\n');
 
-  const backendUrl = (process.env.RENDER_URL || 'https://vexora-backend-rniq.onrender.com').replace(/\/+$/, '');
+  const backendUrl = (
+    process.env.BACKEND_URL
+    || process.env.RENDER_URL
+    || 'https://vexora-backend-rniq.onrender.com'
+  ).replace(/\/+$/, '');
   const dispatchedLink = `${backendUrl}/api/orders/${_id}/status/Dispatched`;
   const onTheWayLink    = `${backendUrl}/api/orders/${_id}/status/On%20The%20Way`;
 
